@@ -1,0 +1,95 @@
+name: Deploy backend
+
+# Runs only when you press "Run workflow" on the Actions tab.
+# It is manual on purpose: the last step ends EVERY live call in your Twilio account.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      AGENT_CONTROL_KEY: ${{ secrets.AGENT_CONTROL_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check that all four secrets are set
+        run: |
+          missing=0
+          for name in TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN ELEVENLABS_API_KEY AGENT_CONTROL_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::Repo secret $name is missing"; missing=1; fi
+          done
+          if [ ${#AGENT_CONTROL_KEY} -lt 32 ]; then
+            echo "::error::AGENT_CONTROL_KEY must be at least 32 characters"; missing=1
+          fi
+          exit $missing
+
+      - name: Run tests
+        run: npm test
+
+      - name: Install the Twilio CLI
+        run: |
+          npm install -g twilio-cli@7.3.0
+          twilio plugins:install @twilio-labs/plugin-serverless@5.0.0
+
+      - name: Deploy to Twilio Serverless
+        run: |
+          # The secrets go into a temporary .env that only exists on this runner.
+          umask 077
+          printf 'ELEVENLABS_API_KEY=%s\nAGENT_CONTROL_KEY=%s\n' "$ELEVENLABS_API_KEY" "$AGENT_CONTROL_KEY" > .env
+          twilio serverless:deploy \
+            --service-name agentcontrol \
+            --runtime node24 \
+            --production \
+            --override-existing-project \
+            --force \
+            --output-format json > deploy.json
+          rm -f .env
+          DOMAIN=$(node -e 'const t=require("fs").readFileSync("deploy.json","utf8"); const m=t.match(/"domain":\s*"([^"]+)"/); if(!m) process.exit(1); console.log(m[1])')
+          echo "BASE_URL=https://$DOMAIN" >> "$GITHUB_ENV"
+          echo "Deployed to https://$DOMAIN"
+
+      - name: Check /agents and /end?agent=all
+        run: |
+          {
+            echo "## Agent Control backend"
+            echo ""
+            echo "Backend URL (type this into the app): **$BASE_URL**"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          ok=1
+          for route in "agents" "end?agent=all"; do
+            code=$(curl -sS -o out.json -w '%{http_code}' -H "X-Agent-Control-Key: $AGENT_CONTROL_KEY" "$BASE_URL/$route" || echo 000)
+            echo "/$route returned HTTP $code"
+            cat out.json; echo
+            {
+              echo "### /$route (HTTP $code)"
+              echo '```json'
+              node -e 'try{console.log(JSON.stringify(JSON.parse(require("fs").readFileSync("out.json","utf8")),null,2))}catch(e){console.log(require("fs").readFileSync("out.json","utf8"))}'
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            [ "$code" = "200" ] || ok=0
+          done
+          # Also prove that a request WITHOUT the key is refused.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/agents" || echo 000)
+          echo "/agents without a key returned HTTP $code (should be 401)"
+          echo "### /agents without a key: HTTP $code (should be 401)" >> "$GITHUB_STEP_SUMMARY"
+          [ "$code" = "401" ] || ok=0
+          [ $ok = 1 ]

@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.AgentControl" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+    </style>
+
+    <style name="EndButton" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/end_red</item>
+        <item name="android:textColor">@color/on_red</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:minHeight">72dp</item>
+        <item name="cornerRadius">16dp</item>
+    </style>
+</resources>
