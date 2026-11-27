@@ -43,6 +43,9 @@ class ScreensTest {
     private val paths = mutableListOf<String>()
 
     @Before fun start() {
+        // A real phone grants these at install; the simulator doesn't unless told.
+        shadowOf(ApplicationProvider.getApplicationContext<android.app.Application>())
+            .grantPermissions(android.Manifest.permission.HIDE_OVERLAY_WINDOWS, android.Manifest.permission.POST_NOTIFICATIONS)
         val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
         SecureStore.keyProvider = { key } // the simulator has no security chip
         server = MockWebServer()

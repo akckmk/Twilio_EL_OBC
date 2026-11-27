@@ -82,3 +82,12 @@ dependencies {
     }
     testImplementation("androidx.test:core:1.6.1")
 }
+
+// Print the full reason when a test fails (shown in the GitHub Actions log).
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+    }
+}

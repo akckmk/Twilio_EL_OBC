@@ -24,5 +24,9 @@ fun View.padForSystemBars() {
  */
 fun Activity.hardenWindow() {
     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setHideOverlayWindows(true)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Needs HIDE_OVERLAY_WINDOWS (granted at install). Never crash if it's missing;
+        // every button also ignores taps while covered (filterTouchesWhenObscured).
+        try { window.setHideOverlayWindows(true) } catch (e: SecurityException) { }
+    }
 }
