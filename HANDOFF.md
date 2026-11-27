@@ -13,8 +13,8 @@
 - Permanent signing key at `android/signing/agent-control-release.p12`. Its password is only in the GitHub secret `ANDROID_SIGNING_PASSWORD` and the user's password manager. Never change storage names (`KeepSettingsTest`).
 - The user is a beginner: very short, plain steps; never ask them to paste keys into chat.
 ## Open / Next
-- **User must re-run Settings → Set up automatically with the newest APK.** Their Twilio still runs the OLD backend; that's why the "Something went wrong on the server" message shows on Live.
-- Then: test call → confirm Live shows it, End all works, History, Usage and Analytics load. Nothing verified against real Twilio yet.
+- ✅ 2026-11-27: the user re-ran in-app setup with the newest APK (fresh ElevenLabs key, Twilio SID and Auth Token). **The Live tab works on real Twilio** (first real-world confirmation).
+- Still to confirm on real data: End all, History (incl. a call's detail page and recording), Usage, Analytics.
 - Recommended to the user: make the repo private, turn on 2FA, review the open Dependabot PRs (none merged).
 ## Gotchas
 - From this sandbox, Twilio, the ElevenLabs API/docs, OSV and the GitHub artifact blob host are blocked, and Maven Central rate-limits big files. Robolectric screen tests therefore run only on GitHub Actions (check with `actions_list` / `get_job_logs`).
