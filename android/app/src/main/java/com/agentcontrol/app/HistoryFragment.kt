@@ -71,11 +71,21 @@ class HistoryFragment : Fragment(), Refreshable {
         }
         val list = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c); adapter = this@HistoryFragment.adapter }
         refresher = SwipeRefreshLayout(c).apply { addView(list); setOnRefreshListener { refresh() } }
+        // Quick date ranges.
+        val presets = LinearLayout(c).apply {
+            orientation = LinearLayout.HORIZONTAL
+            for ((label, days) in listOf(R.string.today to 0L, R.string.days_7 to 6L, R.string.days_30 to 30L)) {
+                addView(MaterialButton(c, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                    text = getString(label); isAllCaps = false
+                    setOnClickListener { setRange(Format.daysAgo(days), Format.today()) }
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = Ui.dp(c, 4) })
+            }
+        }
         updateButtons()
         return LinearLayout(c).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, Ui.dp(c, 4), pad, 0)
-            addView(rangeBtn); addView(filters); addView(search); addView(info)
+            addView(presets); addView(rangeBtn); addView(filters); addView(search); addView(info)
             addView(refresher, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         }
     }
@@ -132,8 +142,15 @@ class HistoryFragment : Fragment(), Refreshable {
         adapter.items = shown
         adapter.notifyDataSetChanged()
         val h = history
+        // Summary of what's shown: answered, answer rate, total cost (pending Twilio prices left out).
+        val answered = shown.count { (it.talkSecs ?: 0) > 0 }
+        val rate = if (shown.isEmpty()) 0 else answered * 100 / shown.size
+        val cost = Format.usd(shown.sumOf { (it.elevenUsd ?: 0.0) + (it.twilioUsd ?: 0.0) })
+        val pending = shown.count { it.twilioPricePending }
         info.text = buildString {
-            append(getString(R.string.history_count, shown.size, all.size))
+            append(getString(R.string.history_count, shown.size, all.size)).append('\n')
+            append(if (pending > 0) getString(R.string.history_summary_pending, answered, rate, cost, pending)
+                   else getString(R.string.history_summary, answered, rate, cost)).append('\n')
             if (h != null) {
                 append(" · ").append(getString(R.string.last_updated, Format.ago((System.currentTimeMillis() - h.cachedAt) / 1000)))
                 if (h.stale) append(" · ").append(getString(R.string.stale))
@@ -156,15 +173,17 @@ class HistoryFragment : Fragment(), Refreshable {
         menu.show()
     }
 
+    private fun setRange(newFrom: String, newTo: String) {
+        from = newFrom; to = newTo
+        history = null; all = emptyList(); apply(); refresh()
+    }
+
     private fun pickRange() {
         val picker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText(R.string.pick_dates)
             .setSelection(Pair(utcMillis(from), utcMillis(to)))
             .build()
-        picker.addOnPositiveButtonClickListener { sel ->
-            from = utcDate(sel.first); to = utcDate(sel.second)
-            history = null; all = emptyList(); apply(); refresh()
-        }
+        picker.addOnPositiveButtonClickListener { sel -> setRange(utcDate(sel.first), utcDate(sel.second)) }
         picker.show(parentFragmentManager, "range")
     }
 

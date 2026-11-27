@@ -141,6 +141,8 @@ class ScreensTest {
         waitFor(a, "Hung up by you")
         val s = screen(a)
         assertTrue(s.contains("4 of 4 calls"))
+        assertTrue(s.contains("2 answered (50%)"))   // summary of what's shown
+        assertTrue(s.contains("Today") && s.contains("7 days") && s.contains("30 days"))
         assertTrue(s.contains("Busy"))
         assertTrue(s.contains("No answer"))
         assertTrue(s.contains("Twilio pending"))
@@ -182,6 +184,14 @@ class ScreensTest {
         assertTrue(s.contains("Hello"))
         assertTrue(s.contains("stayed_in_window: success"))
         assertTrue(s.contains("Play"))
+        // Player tools: slider + time, jump 15 s, speed, tap a line to jump, name this number.
+        assertTrue(s.contains("« 15s") && s.contains("15s »") && s.contains("1×"))
+        assertTrue(s.contains("0:00 / —"))
+        assertTrue(s.contains("Tap a line to hear that moment."))
+        assertTrue(s.contains("Add a name for this number"))
+        val speed = findButton(a.window.decorView, "1×")!!
+        speed.performClick(); assertTrue(screen(a).contains("1.5×"))
+        speed.performClick(); assertTrue(screen(a).contains("2×"))
     }
 
     @Test fun settingsContactsAndWidgetSetupOpen() {

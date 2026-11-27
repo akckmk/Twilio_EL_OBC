@@ -21,6 +21,9 @@ class UsageFragment : BaseFragment() {
     private fun render(u: JSONObject, a: JSONObject) {
         val c = requireContext()
         content.removeAllViews()
+        if (u.has("cachedAt")) {
+            status.text = getString(R.string.usage_updated, Format.ago((System.currentTimeMillis() - u.optLong("cachedAt")) / 1000))
+        }
 
         val el = u.optJSONObject("elevenlabs") ?: JSONObject()
         content.addView(Ui.card(c) {

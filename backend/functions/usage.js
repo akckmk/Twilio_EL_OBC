@@ -4,7 +4,7 @@ const lib = () => require(Runtime.getFunctions()['common'].path);
 exports.handler = (context, event, callback) =>
   lib().endpoint(async (ctx) => {
     const L = lib();
-    return L.cached('usage', 5 * 60_000, async () => {
+    return L.cached('usage', 60_000, async () => { // 1 minute: balances change
       const client = ctx.getTwilioClient();
       const [sub, balance, month] = await Promise.all([
         L.elFetch(ctx, '/v1/user/subscription').then((s) => ({ ok: true, s })).catch((e) => ({ ok: false, e })),
