@@ -130,10 +130,10 @@ The deploy only reads data afterwards. It never ends calls.
 
 | Part | How | Result |
 |---|---|---|
-| Backend endpoints | 21 automated tests run every endpoint against fake Twilio, ElevenLabs and Sync (`backend/test`). They cover the access key, ending calls (unchanged behaviour), live matching and timers, history merging, outcomes, ring and talk time, pending prices, analytics, transcripts, recordings, usage, missing-permission messages, rate-limit fallback, daylight saving, and that nothing private is logged. | All pass |
+| Backend endpoints | 29 automated tests (8 of them attacks) run every endpoint against fake Twilio, ElevenLabs and Sync (`backend/test`). They cover the access key, ending calls (unchanged behaviour), live matching and timers, history merging, outcomes, ring and talk time, pending prices, analytics, transcripts, recordings, usage, missing-permission messages, rate-limit fallback, daylight saving, and that nothing private is logged. | All pass |
 | App ↔ backend agreement | The backend tests save their real responses; the app's tests read those files and check every field the screens use. | All pass |
 | App security | Access key on every request, redirects refused, the app never contains Twilio or ElevenLabs addresses or keys, old keys-on-phone settings are wiped. | All pass |
-| Every screen | Robolectric tests open each screen on a simulated phone against a fake backend: Agents (including tapping End call), Live, History, Usage, Analytics, Call details, Settings, Contacts, and the widget's protection. They run on GitHub (Maven Central rate-limited the machine this was built on). | All 22 app tests pass on GitHub (run #8) |
+| Every screen | Robolectric tests open each screen on a simulated phone against a fake backend: Agents (including tapping End call), Live, History, Usage, Analytics, Call details, Settings, Contacts, and the widget's protection. They run on GitHub (Maven Central rate-limited the machine this was built on). | All app tests pass on GitHub (run #9), incl. 4 attack tests |
 | Real field names | Twilio fields checked against Twilio's official Node SDK (v6.3.1). ElevenLabs fields checked against ElevenLabs' official JS SDK (v2.80) and one real call in your account. | Confirmed |
 | Release APK | Built and signed with your permanent key; not debuggable; Android lint clean apart from wording suggestions. | OK |
 
@@ -150,8 +150,8 @@ The deploy only reads data afterwards. It never ends calls.
 ## For the curious
 
 ```
-cd backend && npm test                        # 21 backend tests (also writes the app's contract files)
+cd backend && npm test                        # 29 backend tests (also writes the app's contract files)
 cd android && ./gradlew testDebugUnitTest     # app tests, incl. every screen on a simulated phone
 ```
 
-Security details from the earlier review are in `SECURITY_REPORT.md`. They describe the previous keys-on-phone version; the network and storage protections carry over.
+The latest security test (v2, this design) is in `SECURITY_REPORT.md` and `Agent_Control_Security_Report.pdf`.

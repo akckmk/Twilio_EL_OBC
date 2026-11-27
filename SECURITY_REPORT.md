@@ -1,137 +1,112 @@
-# Agent Control: Security Test Report
+# Agent Control: Security Test Report (v2, dashboard redesign)
 
 **Date:** 27 November 2026
-**App version tested:** commit `2511b42` (direct-API build), then the patched build in this commit
+**Version tested:** dashboard redesign, commit `75b657c`; fixes in commit `d9822ed`
 **Tester:** Claude Code, at the owner's request
-**Scope:** the Android app (`android/`), its build pipeline (`.github/workflows/build-apk.yml`) and the repository history.
+**Scope:** everything in the repository:
+- the `agentcontrol` backend (9 endpoints);
+- the Android app (5 tabs, widgets, notifications, fingerprint lock);
+- both GitHub Actions workflows;
+- the public git history.
+
+The first review (v1, the earlier keys-on-phone version) is in the git history. Its protections that still apply are listed in section 4.
 
 ---
 
 ## 1. Summary
 
-The app was tested two ways:
-
-- **White hat:** reviewed the code, configuration and build.
-- **Red hat:** acted as an attacker, with a malicious app on the phone, a USB cable, a hostile network or server, and a compromised build pipeline.
+The redesign moved your Twilio and ElevenLabs keys off the phone into the backend, and added transcripts, recordings, phone numbers and costs. That creates new things to protect: the backend's endpoints, the build pipeline that holds your keys, and the private call data itself.
 
 **Results:**
+- **9 issues found, all fixed:** 1 High, 2 Medium, 6 Low.
+- **The most serious one was in the build pipeline, not the app.** Your Twilio token and ElevenLabs key were visible to steps that install and run code downloaded from npm. A malicious package could have stolen them.
+- **The repo is public.** Nothing secret is in it: I scanned the whole history. But GitHub run summaries are public too, and the deploy summary would have shown agent names, live-call counts and credits.
+- **The backend held up against 13 attack payloads on 8 parameters.** Bad access keys, a header-spoofing trick and path-traversal attempts were all refused. A request without the right key never reaches Twilio or ElevenLabs.
+- **New attack tests** (8 for the backend, 4 for the app) now run on every build.
 
-- **12 issues were found. All 12 are fixed in this build.**
-- The two most serious were:
-  - **H-1.** The APK was a *debug* build, so anyone with USB access could read your keys out of it.
-  - **H-2.** A server redirect could carry your ElevenLabs key to another server.
-- 4 issues were proven with real attack tests that **failed before the fix and pass after it**. Those tests now run on every build.
-- **No keys were found** in the APK or anywhere in the git history.
-
-**The one important thing left for you to do** is choose the narrowest Twilio key type you can (see section 5, R-1).
+**Your one most useful action:** make the repo private (section 6, R-1). It's free and takes one click.
 
 | Severity | Found | Fixed |
 |---|---|---|
-| High | 2 | 2 |
-| Medium | 4 | 4 |
+| High | 1 | 1 |
+| Medium | 2 | 2 |
 | Low | 6 | 6 |
 
 ---
 
-## 2. What was tested and how
+## 2. How it was tested
 
-| Method | Tool / approach |
+| Method | What was done |
 |---|---|
-| Static code scan | `mobsfscan` 1.2.0 (OWASP MASVS rules), Android Lint (release) |
-| APK inspection | `aapt2` (final manifest, permissions, exported parts), `apksigner` |
-| Secret scan | Searched the APK contents and all git history for Twilio (`AC…`, `SK…`) and ElevenLabs key patterns, and for the old access key |
-| Attack simulation | 5 automated red-team tests (`AttackTest.kt`) running the real network code against a fake hostile server |
-| Function tests | 8 tests (`CallControlTest.kt`) proving the right calls, and only those, get ended |
-| Manual review | Every exported screen, the widget, key storage, input fields, errors, the CI workflow |
+| **Secret and personal-data scan of the public history** | Every commit searched for Twilio SIDs and keys, ElevenLabs keys, call and conversation IDs, real phone numbers, your name and email, the signing password and the access key. |
+| **Backend attack tests** | 8 automated attacks (`backend/test/functions.test.js`, "ATTACK:" tests) against all 9 endpoints, with fake Twilio and ElevenLabs services to see what an attack would reach. |
+| **Twilio runtime review** | Read the source of Twilio's runtime (`@twilio/runtime-handler` 2.1.2) to see exactly how a request's headers and parameters reach the code. |
+| **App attack tests** | 4 attack tests on the real app screens on a simulated phone (Robolectric), run on GitHub. |
+| **App package inspection** | `aapt2`: permissions, which parts other apps can open, debuggable flag; `apksigner`: signing key. |
+| **Static scanners** | `mobsfscan` (OWASP mobile rules), Android Lint. |
+| **Dependency vulnerabilities** | `npm audit` on the backend's locked dependency tree. Android libraries: the OSV database was unreachable from here, so Dependabot now does this on GitHub (L-6). |
+| **Pipeline review** | Which steps see which secrets, what is published, and whether third-party code runs alongside secrets. |
 
-**Limits.** There's no phone emulator in this environment, so the app wasn't driven on a real device. On-device behaviour was confirmed from the built APK and the Android documentation, not by tapping through it. Twilio and ElevenLabs themselves weren't tested; they are out of scope.
+### Attackers considered
+1. **Anyone on the internet** who finds the backend address. That's easy, since it's printed in a public repo's run summary.
+2. **A malicious app on your phone.**
+3. **Someone holding your unlocked phone,** or a thief with a locked one.
+4. **A hostile network** (rogue Wi-Fi, an interception proxy).
+5. **A supply-chain attacker:** a compromised npm, Maven or GitHub Actions package.
+6. **Anyone reading the public repo,** its history, its run summaries and its downloads.
 
-### Attack models
-
-1. **A malicious app installed on the same phone.**
-   - It can open any screen the app makes public.
-   - It can draw over the screen.
-   - It can read the clipboard.
-2. **Someone who borrows the phone, or plugs it into a computer.**
-3. **A hostile network or server**, for example rogue Wi-Fi, a bad redirect, or a compromised API reply.
-4. **A supply-chain attacker** who tampers with the build tools or GitHub Actions.
+### Limits
+- The backend wasn't attacked live on Twilio, because it isn't deployed yet and Twilio's servers are blocked from this machine. The attacks ran against the same code with fake services.
+- Nothing ran on a real phone, only the simulator.
+- The Android libraries weren't checked against a vulnerability database here (Dependabot now does this).
 
 ---
 
 ## 3. Findings and fixes
 
-### H-1. App shipped as a debug build (High), fixed
-- **Attack:** with the phone unlocked and USB debugging on, `adb shell run-as com.agentcontrol.app` reads the app's private files. A debugger can also attach and read the decrypted keys from memory.
-- **Evidence:** `aapt2` showed `android:debuggable=true` in the APK.
+### H-1. Build pipeline exposed your Twilio and ElevenLabs keys to third-party code (High), fixed
+- **Attack:** the deploy workflow gave **all** its steps your Twilio Auth Token, ElevenLabs key and access key. That includes `npm install -g twilio-cli`, which downloads hundreds of packages and runs their install scripts, and `npm test`. One compromised npm package could have read the keys and sent them away. That would mean full control of your Twilio account and ElevenLabs workspace. The APK workflow similarly gave the signing password to the test step, which runs third-party test libraries.
 - **Fix:**
-  - The app now ships as a **release** build (`isDebuggable = false`), with unused code removed (APK went from 10 MB to 1.8 MB).
-  - The build pipeline now **fails if the APK is ever debuggable**.
+  - Secrets are now given **only to the steps that need them**. The install and test steps see none.
+  - Tests install with `npm ci --ignore-scripts` from a committed lockfile, so no install scripts run and versions can't drift.
+  - The `.env` file holding secrets is removed even if the deploy fails (`trap`).
+- **Remaining:** the steps that do need secrets still run the Twilio CLI and Gradle, which are third-party code. Their versions are pinned (section 6, R-4).
 
-### H-2. Redirects could leak the ElevenLabs key (High), fixed
-- **Attack:** a compromised or spoofed API reply sends `302 Location: https://attacker`. The app followed it and sent `xi-api-key` along. The network library only strips the standard `Authorization` header on redirects, not custom ones.
-- **Evidence:** `elevenLabsKeyIsNotLeakedByRedirect` failed before the fix, because the attacker server received the request.
-- **Fix:** redirects are switched off completely (`followRedirects(false)`, `followSslRedirects(false)`). A redirect now stops with the message "unexpected redirect. Nothing was done."
+### M-1. Public run summaries would publish private details (Medium), fixed
+- **Attack:** this repo is public, so anyone can read its Actions run summaries and logs. The deploy summary listed your agents' names, how many calls were live, and your remaining ElevenLabs credits.
+- **Fix:** the summary now shows only ✅/❌ setup checks and the backend URL, which is useless without the access key, with a note explaining why. The setup check prints check names and missing permissions, never names, numbers or usage.
 
-### M-1. Twilio requests also followed redirects (Medium), fixed
-- **Evidence:** `twilioKeyIsNotLeakedByRedirect` failed before the fix. The Twilio key header itself was stripped, but the request still went to the other server.
-- **Fix:** same as H-2.
-
-### M-2. Poisoned call ID could make the app write to other Twilio endpoints (Medium), fixed
-- **Attack:** a tampered Twilio reply lists a call with `sid = "../../IncomingPhoneNumbers/PN1"`. The app then POSTed to `/Accounts/IncomingPhoneNumbers/PN1.json`, an unrelated Twilio resource.
-- **Evidence:** `poisonedCallSidIsIgnored` failed before the fix.
-- **Fix:** every call ID must match `CA` plus 32 hex characters before it's used. Anything else is dropped.
-
-### M-3. Poisoned conversation ID could steer ElevenLabs requests (Medium), fixed
-- **Attack:** a conversation ID like `../../agents/x?delete=1` changed which address the app requested.
-- **Evidence:** `poisonedConversationIdIsIgnored` failed before the fix.
+### M-2. A transcript matched by time could be the wrong call's (Medium), fixed
+- **Risk:** when a call can't be matched to its ElevenLabs conversation by the exact call ID, the backend pairs them by start time. If the conversation carries **no** call ID (for example a SIP call), the backend couldn't double-check, and two calls starting at the same moment could show each other's transcript.
 - **Fix:**
-  - IDs must match `[A-Za-z0-9_-]{1,100}`.
-  - IDs are added to addresses as a single, encoded path segment, never pasted into the text of the address.
+  - The backend now labels such matches `matchedBy: "time"`.
+  - The app shows a warning on the call page: "matched by start time, could belong to a different call".
+  - When the conversation **does** carry a call ID, a mismatch still hides the transcript entirely.
+- **Evidence:** the tests "a transcript found only by time is labelled" (backend) and "time-matched transcript carries a warning" (app).
 
-### M-4. Saved secrets were shown again in Settings (Medium), fixed
-- **Attack:** someone holding the unlocked phone opens Settings, taps the eye icon, and copies your Twilio secret and ElevenLabs key.
+### L-1. The key check accepted lists, and Twilio lets parameters overwrite headers (Low), fixed
+- **Discovery:** Twilio's runtime builds each request as `{ request: { headers }, ...URL parameters, ...body }`, so **a parameter named `request` replaces the real headers**. In this code, the attacker's fake headers still had to contain the **correct key**. The check also turned a list into text before comparing, so `[key]` matched `key`. Neither is a way in without the key, but the check was looser than it should be.
+- **Fix:** the key must now be one plain text value of sane length, compared in constant time. Lists, objects and forged `request` values are refused. All 9 endpoints are tested against forged headers.
+
+### L-2. Malformed parameters caused server errors (Low), fixed
+- **Attack:** sending parameters as objects or lists, for example JSON bodies or `?agent[x]=y`, could make `String()` throw, so the backend returned a 500 error instead of a clean refusal.
+- **Fix:** every parameter now goes through one helper that accepts only plain text of 200 characters or fewer. 13 hostile payloads on 8 parameters now get only 200, 400 or 404 answers, with no stack traces. The payloads included path traversal, encoded traversal, null bytes, query and fragment injection, very long text and SQL-style strings. None of them reached Twilio or ElevenLabs in an unsafe form.
+
+### L-3. An unconfigured server told strangers which secret was missing (Low), fixed
+- **Fix:** strangers now see only "Server is not set up". The detail goes to the private Twilio log.
+
+### L-4. Notifications showed full phone numbers (Low), fixed
+- **Risk:** apps with notification access, such as smartwatch, automation and launcher apps, can read every notification's text.
+- **Fix:** call notifications show the contact's name if you saved one, otherwise "number ending 2222". The lock screen still shows only "Call started" or "Call ended".
+
+### L-5. Other apps could open the main screen with any tab value (Low), fixed
+- **Fix:** only the app's own five tab IDs are accepted; anything else opens the Agents tab. No crash or exploit was possible before, but the screen now refuses unexpected input outright.
+
+### L-6. No automatic dependency-vulnerability monitoring (Low), fixed
 - **Fix:**
-  - The two secrets are **never shown again** after saving. The box says "Saved (hidden). Leave empty to keep."
-  - The two IDs (Account SID and key SID) are still shown, because they aren't secret on their own.
-
-### L-1. Screenshots and Recent-apps previews (Low), fixed
-- **Fix:** every screen sets `FLAG_SECURE`. That blocks screenshots, screen recording, casting, and the preview in Recent apps.
-
-### L-2. Tapjacking, where an overlay tricks you into tapping "End all" (Low), fixed
-- **Fix:**
-  - Other apps' floating windows are hidden while Agent Control is open (`setHideOverlayWindows`, Android 12 and later).
-  - Every button ignores taps while something covers it (`filterTouchesWhenObscured`).
-
-### L-3. Another app could open the widget-setup screen to retarget your widget (Low), fixed
-- **Attack:** a malicious app opens the setup screen with the number of your "Merida" widget. If you tap "All agents", that widget would end every call.
-- **Fix:** the screen now refuses any widget number that doesn't belong to Agent Control's own widget. It's also hidden from Recent apps.
-
-### L-4. Task hijacking (StrandHogg) (Low), fixed
-- **Fix:**
-  - Every screen now sets `taskAffinity=""`, so a malicious app can't slip its own screen in front of Agent Control's.
-  - The minimum Android version is raised to 10, which carries the system-level fix.
-  - Your S26 is far above that.
-- **Note:** `mobsfscan` still prints `android_task_hijacking2`. That's a false alarm: the scanner reads the target Android version from the source manifest, where it isn't set, so it assumes Android 8. The real APK targets Android 15 (SDK 35), confirmed with `aapt2`.
-
-### L-5. Keys left on the clipboard and in keyboard memory (Low), fixed
-- **Fix:**
-  - The clipboard is wiped after a successful save.
-  - Every key box tells the keyboard not to learn what's typed (`flagNoPersonalizedLearning`, no suggestions, no autofill).
-
-### L-6. Supply chain: build actions pinned by tag only (Low), fixed
-- **Fix:**
-  - GitHub Actions are pinned to exact commit hashes.
-  - `gradle/actions/wrapper-validation` now checks that the Gradle wrapper is genuine.
-  - Checkout no longer keeps the GitHub token (`persist-credentials: false`).
-  - The workflow is read-only.
-
-### Extra hardening (not tied to a finding)
-
-- **Encryption key in the security chip:** it's now created in **StrongBox** (Samsung Knox Vault, a separate security chip) when available, falling back to the normal Keystore.
-- **Network rules:**
-  - HTTPS only (`cleartextTrafficPermitted=false`).
-  - Only Android's built-in certificate authorities are trusted. A certificate a user or app installs can't be used to spy on traffic.
-- **Error messages:** generic errors no longer include internal exception text. A dedicated test checks that on-screen errors never contain a key.
+  - Added `.github/dependabot.yml`, so GitHub checks npm, Gradle and GitHub Actions dependencies weekly and proposes fixes.
+  - Added `backend/package-lock.json`, so dependency versions are fixed and audited.
+  - `npm audit` reports **0** known vulnerabilities.
 
 ---
 
@@ -139,65 +114,87 @@ The app was tested two ways:
 
 | Area | Result |
 |---|---|
-| Secrets in APK or git history | None found |
-| Key storage | AES-256-GCM, key never leaves the Keystore or StrongBox, new random IV each time |
-| Backups | Off (`allowBackup=false`, cloud and device-transfer backups exclude app data) |
-| Exported parts | Only the launcher and the widget-setup screen, which Android requires; both now validated. The widget receiver isn't exported. The one AndroidX receiver is protected by the system-only `DUMP` permission. |
-| Widget tap intent | Explicit and immutable (`FLAG_IMMUTABLE`), so other apps can't change it |
-| Logging | The app logs nothing; no HTTP logging |
-| Where keys go | Only `api.twilio.com` and `api.elevenlabs.io`, over TLS 1.2 or higher |
-| Agent names from ElevenLabs | Shown as plain text, never as HTML, so they can't inject anything |
-| Permissions | `INTERNET` and `HIDE_OVERLAY_WINDOWS` only. No contacts, phone, mic or location access. |
+| Secrets in the public repo or history | **None.** Only made-up test numbers (+1555…). The signing key file is encrypted (AES-256) and its password appears nowhere. |
+| Your personal data in the repo | **None.** No real phone numbers, call IDs, transcripts, name or email. |
+| Access key on all 9 endpoints | Required everywhere; wrong, missing, near-miss, duplicated and forged keys all get 401. |
+| Requests without the key | **Never reach Twilio or ElevenLabs** (tested), so no data leaks and no cost. |
+| Twilio stripping the key header | Checked against Twilio's runtime: `x-agent-control-key` is not on its stripped-header list. |
+| Path / URL injection | IDs are checked against strict patterns before use; upstream addresses are fixed. |
+| Ending calls via a link (cross-site) | Not possible: the key travels in a custom header, which browsers can't send cross-site without permission, and the backend grants none. |
+| Response caching | Every response is `Cache-Control: no-store`. |
+| Logs | The backend logs only endpoint names and status codes. A test fails if a phone number, name, summary or transcript is ever logged. |
+| Redirects | Refused by the app and by the backend's ElevenLabs requests, so a redirect can't carry a key away. |
+| Recordings | Streamed through the backend in pieces. No ElevenLabs key or signed link reaches the phone. The temporary file is deleted when you leave the page, or on the next start after a crash. |
+| Phone storage | Backend URL, access key, contacts and the cached history are AES-256-GCM encrypted with a key in the phone's security chip. Excluded from backups. |
+| Key display | The access key is never shown again after saving; the clipboard is wiped. |
+| App package | Release build (not debuggable), signed with your permanent key (`6ac2f9ce…9e490883`). Only the launcher and widget-setup screens are open to other apps, as Android requires. The new notification service is private. |
+| Permissions | Internet, notifications, fingerprint, foreground service, hide overlays. **No contacts, phone, microphone or location access.** |
+| Screens | Screenshots, screen recording and Recent-apps previews blocked; overlays hidden; buttons ignore covered taps. |
+| Network | HTTPS only; only Android's built-in certificate authorities are trusted. |
+| Widget retargeting by other apps | Refused (tested). |
+| Fingerprint lock | Content stays hidden until unlocked (tested). |
 
 ---
 
-## 5. Remaining risks and recommendations
+## 5. Attack tests that now run on every build
 
-**R-1. Twilio key scope (your action, most important).**
-- A **Standard** Twilio API key can do almost anything on your Twilio account, not just end calls.
-- **Best:** if Twilio offers a **Restricted** key type when you create the key, choose it and allow only **Voice → Calls** (read and update). The app needs nothing else.
-- **Good:** if only Standard is offered, it's acceptable. Never put your main Auth Token in the app; the app doesn't ask for it.
-- **If your phone is lost:** delete the key in Twilio and in ElevenLabs. That cuts the app off instantly.
+**Backend** (`npm test`; 29 tests in all, 8 of them attacks):
+1. A forged `request` parameter can't fake the key header (all 9 endpoints).
+2. Duplicate, padded or truncated keys, or a key in the URL, are refused.
+3. Refused requests never reach Twilio or ElevenLabs.
+4. A misconfigured server doesn't say which secret is missing.
+5. 13 injection and traversal payloads on 8 parameters are refused or harmless.
+6. No caching and no cross-site access.
+7. Time-matched transcripts are labelled.
+8. Nothing private is logged, during normal use or under attack.
 
-**R-2. ElevenLabs key scope.**
-- "Agents: Write" is only needed for the last-resort "end on ElevenLabs" step.
-- If you prefer, choose **Read**. Everything else still works.
+**App** (GitHub "Build Android APK", simulated phone):
+1. A bogus tab value from another app can't crash the app.
+2. The fingerprint lock hides everything until unlocked.
+3. Notifications never show full phone numbers.
+4. A time-matched transcript shows its warning.
 
-**R-3. Unlocked phone.**
-- Anyone using your unlocked phone can tap **End call**. That's what one tap means.
-- Keep a screen lock on.
-- A fingerprint check before ending calls could be added, but it would make the widget two steps.
-
-**R-4. Permanent signing key (added 27 Nov 2026, after the test).**
-- **Why it's needed:** each build used to be signed with a throwaway key. Android refuses to update an app signed with a different key, so every update meant uninstalling, which wiped the saved keys.
-- **What changed:** all builds are now signed with **one permanent key**, so updates install over the old version and **your saved keys stay**.
-- **How it's protected:**
-  - The key file (`android/signing/agent-control-release.p12`) is in the repo, which is **public**, but it's locked. It uses a 4096-bit RSA key, encrypted with AES-256 (PBKDF2-SHA256) under a 40-character random password.
-  - The password exists only in the GitHub secret `ANDROID_SIGNING_PASSWORD` and your password manager.
-  - Without the password the file is useless. Guessing a 40-character random password isn't feasible.
-- **Built-in checks:**
-  - The build pipeline checks that every APK's signature fingerprint matches `6ac2f9ce…9e490883` and refuses anything else.
-  - A test (`KeepSettingsTest`) fails if anyone renames where the keys are stored, since that would also wipe them on update.
-- **Your part:**
-  - Keep the signing password secret.
-  - Only install APKs from your own repo's Actions page or from this chat. Android will refuse any "update" not signed with your key, which protects you.
-
-**R-5. Not added, by choice.**
-- **Certificate pinning:** Twilio and ElevenLabs rotate their certificates, and a pinned app would suddenly stop working. System-CA-only trust plus HTTPS-only is the safer trade-off.
-- **Root detection or Play Integrity:** these mainly protect servers from tampered clients. This app has no server, and a rooted attacker could bypass them anyway.
-
-**R-6. Gradle download checksum.**
-- The Gradle distribution is fetched over HTTPS but has no pinned checksum. The checksum site was blocked here.
-- Adding `distributionSha256Sum` to `gradle-wrapper.properties` is a small future improvement.
+These run alongside the earlier tests: access key on every request, redirects refused, no provider keys in the app, old keys wiped on upgrade, widget retargeting refused, key never displayed, history cache encrypted.
 
 ---
 
-## 6. How to re-run these tests
+## 6. Remaining risks and recommendations
+
+**R-1. Make the repository private (recommended, your action).**
+- To do it: GitHub, then **Settings → General → Danger Zone → Change visibility → Private**.
+- Nothing secret is exposed today. But a private repo hides your run summaries, backend address, downloadable APKs and code from strangers, and it costs nothing.
+
+**R-2. The access key is a master key to your calls.**
+- Whoever has it can end calls and read transcripts. It's 192-bit random, so guessing it is infeasible, but it could still be stolen, from your password manager or an unlocked phone.
+- **If you suspect that:** change the `AGENT_CONTROL_KEY` secret, run **Deploy backend**, and enter the new key in the app.
+
+**R-3. The backend uses your Twilio Auth Token**, which controls the whole Twilio account.
+- Keep two-factor login on GitHub, Twilio and ElevenLabs, since those accounts guard the secrets.
+- Only you should have write access to the repo.
+
+**R-4. Steps that need secrets still run pinned third-party tools** (Twilio CLI 7.3.0, Gradle plugins). This is inherent to deploying. Dependabot will flag known problems.
+
+**R-5. The fingerprint lock is a screen lock, not encryption.**
+- It stops someone holding your unlocked phone from reading calls. It isn't designed to resist a rooted or hacked phone.
+- The widgets end calls without a fingerprint, by design (one tap).
+
+**R-6. Data held outside the phone:**
+- Twilio's memory holds a call's transcript for up to 10 minutes after you view it (cache).
+- Twilio Sync stores only call IDs and conversation IDs, no transcripts or numbers.
+
+**R-7. No request-rate limit on the backend.** Guessing the key is infeasible, but someone could send junk requests, each costing a tiny fraction of a cent in Twilio Function usage. Twilio's own abuse protection applies.
+
+**R-8. Not covered by this test:**
+- the live Twilio deployment (not deployed yet);
+- a real phone;
+- Twilio's and ElevenLabs' own security;
+- a vulnerability-database check of the Android libraries (Dependabot now does this).
+
+---
+
+## 7. How to re-run
 
 ```
-cd android
-./gradlew testReleaseUnitTest   # 15 tests: 8 function, 5 attack, 2 keep-settings
-./gradlew lintRelease
+cd backend && npm test                       # 29 tests incl. 8 attacks
+cd android && ./gradlew testDebugUnitTest    # app tests incl. 4 attacks (simulated phone)
 ```
-
-GitHub Actions runs all of these on every change, and refuses to publish a debuggable APK.
