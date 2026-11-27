@@ -42,7 +42,7 @@ class WidgetConfigActivity : AppCompatActivity() {
         status.text = getString(R.string.loading_agents)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                try { Result.success(Backend(settings).agents()) } catch (e: Exception) { Result.failure(e) }
+                try { Result.success(CallControl(settings).agents()) } catch (e: Exception) { Result.failure(e) }
             }
             result.onSuccess { agents ->
                 status.text = getString(R.string.widget_pick)

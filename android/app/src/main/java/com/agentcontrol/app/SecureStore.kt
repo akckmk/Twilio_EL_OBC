@@ -12,7 +12,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Keeps the backend URL and access key encrypted on the phone.
+ * Keeps your Twilio and ElevenLabs keys encrypted on the phone.
  * The encryption key lives in the Android Keystore (the phone's secure hardware)
  * and never leaves it, so the saved text is useless if copied off the phone.
  */
@@ -21,12 +21,19 @@ object SecureStore {
     private const val PREFS = "secure_settings"
     private const val FIELD = "blob"
 
-    data class Settings(val baseUrl: String, val accessKey: String)
+    data class Settings(
+        val accountSid: String,
+        val apiKeySid: String,
+        val apiKeySecret: String,
+        val elevenLabsKey: String,
+    )
 
     fun save(context: Context, settings: Settings) {
         val plain = JSONObject()
-            .put("baseUrl", settings.baseUrl)
-            .put("accessKey", settings.accessKey)
+            .put("accountSid", settings.accountSid)
+            .put("apiKeySid", settings.apiKeySid)
+            .put("apiKeySecret", settings.apiKeySecret)
+            .put("elevenLabsKey", settings.elevenLabsKey)
             .toString()
             .toByteArray(Charsets.UTF_8)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -43,7 +50,12 @@ object SecureStore {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, iv))
             val json = JSONObject(String(cipher.doFinal(sealed.copyOfRange(12, sealed.size)), Charsets.UTF_8))
-            Settings(json.getString("baseUrl"), json.getString("accessKey"))
+            Settings(
+                json.getString("accountSid"),
+                json.getString("apiKeySid"),
+                json.getString("apiKeySecret"),
+                json.getString("elevenLabsKey"),
+            )
         } catch (e: Exception) {
             null // Unreadable (for example after a phone reset): ask for the settings again.
         }

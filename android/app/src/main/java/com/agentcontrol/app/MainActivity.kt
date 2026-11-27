@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         refresher.isRefreshing = true
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                try { Result.success(Backend(settings).agents()) } catch (e: Exception) { Result.failure(e) }
+                try { Result.success(CallControl(settings).agents()) } catch (e: Exception) { Result.failure(e) }
             }
             refresher.isRefreshing = false
             list.removeAllViews()
@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun addAgentRow(agent: Backend.Agent) {
+    private fun addAgentRow(agent: CallControl.Agent) {
         val row = LayoutInflater.from(this).inflate(R.layout.item_agent, list, false)
         row.findViewById<TextView>(R.id.agent_name).text = agent.name
         val button = row.findViewById<Button>(R.id.end_call)
@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         button.isEnabled = false
         button.text = getString(R.string.ending)
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { Backend(settings).end(agentId) }
+            val result = withContext(Dispatchers.IO) { CallControl(settings).end(agentId) }
             button.isEnabled = true
             button.text = originalText
             status.text = result.message
