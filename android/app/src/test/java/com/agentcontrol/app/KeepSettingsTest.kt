@@ -24,8 +24,16 @@ class KeepSettingsTest {
     @Test fun appNeverStoresProviderKeys() {
         for (f in File("src/main/java/com/agentcontrol/app").listFiles()!!) {
             val s = f.readText()
-            assertFalse(f.name, s.contains("xi-api-key") || s.contains("api.twilio.com") || s.contains("api.elevenlabs.io"))
+            // The app never talks to ElevenLabs. Only the one-time setup (Deployer) talks to Twilio.
+            assertFalse(f.name, s.contains("xi-api-key") || s.contains("api.elevenlabs.io"))
+            if (f.name != "Deployer.kt") assertFalse(f.name, s.contains("twilio.com/"))
         }
+        // What gets saved is only the backend URL and the access key.
+        val store = source("src/main/java/com/agentcontrol/app/SecureStore.kt")
+        assertTrue(store.contains("data class Settings(val baseUrl: String, val accessKey: String)"))
+        val setup = source("src/main/java/com/agentcontrol/app/SetupActivity.kt")
+        assertTrue(setup.contains("SecureStore.Settings(r.baseUrl, r.accessKey)"))
+        assertFalse(setup.contains("writeFile") || setup.contains("getSharedPreferences") || setup.contains("Prefs."))
     }
 
     @Test fun appIdAndSigningKeyNeverChange() {

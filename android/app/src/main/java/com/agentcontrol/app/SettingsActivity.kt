@@ -112,6 +112,7 @@ class SettingsActivity : SecureActivity() {
                 }, { it.message })
             }
         }
+        findViewById<Button>(R.id.setup).setOnClickListener { startActivity(Intent(this, SetupActivity::class.java)) }
         findViewById<Button>(R.id.contacts).setOnClickListener { startActivity(Intent(this, ContactsActivity::class.java)) }
     }
 

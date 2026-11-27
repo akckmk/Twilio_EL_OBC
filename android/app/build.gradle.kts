@@ -59,6 +59,16 @@ android {
     }
 }
 
+// The backend's code is bundled into the app, so the app can deploy it to your Twilio
+// account during one-time setup. Single source of truth: ../backend.
+val bundleBackend by tasks.registering(Copy::class) {
+    from(rootProject.file("../backend/functions")) { include("*.js"); into("functions") }
+    from(rootProject.file("../backend/package.json"))
+    into(layout.buildDirectory.dir("generated/backend-assets/backend"))
+}
+android.sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/backend-assets"))
+tasks.named("preBuild") { dependsOn(bundleBackend) }
+
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")

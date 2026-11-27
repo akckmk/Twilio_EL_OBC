@@ -49,6 +49,14 @@
             android:theme="@style/Theme.AgentControl.WithBar" />
 
         <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.AgentControl.WithBar" />
+
+        <activity
             android:name=".ContactsActivity"
             android:exported="false"
             android:taskAffinity=""

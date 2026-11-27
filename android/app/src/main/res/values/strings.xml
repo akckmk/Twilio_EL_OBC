@@ -25,6 +25,26 @@
     <string name="lock_subtitle">Unlock to see your calls</string>
     <string name="check_setup">Check backend setup</string>
 
+    <!-- One-time automatic setup -->
+    <string name="setup_title">Set up automatically</string>
+    <string name="setup_button">Set up automatically (easiest)</string>
+    <string name="setup_or_manual">Already have a backend? Enter its URL and access key below instead.</string>
+    <string name="setup_intro">Paste three things once. The app puts the backend into your Twilio account, then forgets your Twilio and ElevenLabs keys. Only the backend address and a new private access key stay on this phone, encrypted.</string>
+    <string name="setup_where"><![CDATA[<b>Twilio:</b> open <a href="https://console.twilio.com">console.twilio.com</a>. On the home page, under <b>Account Info</b>, copy the <b>Account SID</b> and the <b>Auth Token</b> (tap Show).<br/><b>ElevenLabs:</b> open <a href="https://elevenlabs.io/app/settings/api-keys">ElevenLabs → API keys</a>, tap <b>Create</b>, turn on <b>Restrict Key</b>, set <b>ElevenLabs Agents</b> to <b>Write</b> and <b>User</b> to <b>Read</b>, leave the rest at No Access, and copy the key.]]></string>
+    <string name="setup_account_sid">Twilio Account SID (starts with AC)</string>
+    <string name="setup_auth_token">Twilio Auth Token</string>
+    <string name="setup_el_key">ElevenLabs API key</string>
+    <string name="setup_go">Set up</string>
+    <string name="setup_privacy">Your Twilio Auth Token and ElevenLabs key are used only during this setup and are never saved on the phone. The ElevenLabs key is stored as a private setting inside your own Twilio account, where the backend needs it. Run setup again any time to update the backend or get a fresh access key.</string>
+    <string name="setup_checking">Checking the new backend…</string>
+    <string name="setup_failed">Setup didn\'t finish.</string>
+    <string name="setup_done">All set. Everything is working.</string>
+    <string name="setup_done_with_problem">The backend is live, but one thing still needs fixing: %1$s</string>
+    <string name="setup_open_app">Open Agent Control</string>
+    <string name="bad_account_sid">The Account SID should start with AC and be 34 characters long.</string>
+    <string name="bad_auth_token">The Auth Token looks too short. It\'s 32 characters; tap Show in Twilio to copy it.</string>
+    <string name="bad_el_key">The ElevenLabs key looks too short.</string>
+
     <!-- Tabs -->
     <string name="tab_agents">Agents</string>
     <string name="tab_live">Live</string>

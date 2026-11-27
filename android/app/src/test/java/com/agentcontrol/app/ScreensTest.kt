@@ -244,4 +244,67 @@ class ScreensTest {
         val a = Robolectric.buildActivity(CallDetailActivity::class.java, i).setup().get()
         waitFor(a, "matched to the call by start time")
     }
+
+    // ---------------------------------------------------------------- one-time setup
+
+    @Test fun setupDeploysThenForgetsTheTwilioAndElevenLabsKeys() {
+        val token = "T0k3n".repeat(7) + "xy"        // 37 chars
+        val elKey = "sk_secretElevenLabs_" + "q".repeat(30)
+        val twilio = MockWebServer()
+        val bodies = mutableListOf<String>()
+        twilio.dispatcher = object : Dispatcher() {
+            var n = 0
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                bodies.add(request.body.readUtf8())
+                val p = request.requestUrl!!.encodedPath
+                val ok = { o: String -> MockResponse().setBody(o) }
+                return when {
+                    request.method == "GET" && (p.endsWith("/Services") || p.endsWith("/Environments") || p.endsWith("/Functions") || p.endsWith("/Variables")) ->
+                        ok("""{"services":[],"environments":[],"functions":[],"variables":[]}""")
+                    p.endsWith("/Status") -> ok("""{"status":"completed"}""")
+                    p.endsWith("/Environments/ZE1") -> ok("""{"domain_name":"agentcontrol-1234.twil.io"}""")
+                    p.endsWith("/Environments") -> ok("""{"sid":"ZE1"}""")
+                    else -> ok("""{"sid":"ZX${n++}"}""")
+                }
+            }
+        }
+        twilio.start()
+        SetupActivity.deployerFactory = { sid, tok, files, deps ->
+            Deployer(sid, tok, files, deps,
+                serverless = twilio.url("/sl").toString().trimEnd('/'), upload = twilio.url("/up").toString().trimEnd('/'),
+                sync = twilio.url("/sync").toString().trimEnd('/'), api = twilio.url("/api").toString().trimEnd('/'),
+                pause = {}, allowedHosts = setOf(twilio.hostName))
+        }
+        try {
+            SecureStore.deleteFile(ctx, "history")
+            val a = Robolectric.buildActivity(SetupActivity::class.java).setup().get()
+            val edits = mutableListOf<android.widget.EditText>()
+            fun collect(v: View) { if (v is android.widget.EditText) edits.add(v); if (v is ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i)) }
+            collect(a.window.decorView)
+            assertEquals(3, edits.size)
+            edits[0].setText("AC" + "b".repeat(32)); edits[1].setText(token); edits[2].setText(elKey)
+            findButton(a.window.decorView, "Set up")!!.performClick()
+            val end = System.currentTimeMillis() + 30_000
+            while (System.currentTimeMillis() < end && !screen(a).contains("Open Agent Control")) {
+                shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(5)); Thread.sleep(30)
+            }
+            val s = screen(a)
+            assertTrue(s, s.contains("Open Agent Control"))
+            assertTrue(s.contains("Uploading backend code (10 of 10)"))
+            // The phone now holds only the backend URL and a new access key...
+            val saved = SecureStore.load(ctx)!!
+            assertEquals("https://agentcontrol-1234.twil.io", saved.baseUrl)
+            assertTrue(Regex("^[0-9a-f]{48}$").matches(saved.accessKey))
+            // ...the ElevenLabs key went to Twilio as a private variable...
+            assertTrue(bodies.any { it.contains("ELEVENLABS_API_KEY") && it.contains(elKey) })
+            // ...and neither secret is stored anywhere on the phone, nor left in the boxes.
+            val dataDir = ctx.filesDir.parentFile!!
+            val stored = dataDir.walkTopDown().filter { it.isFile }.map { it.readBytes().toString(Charsets.ISO_8859_1) }.toList()
+            assertTrue(stored.none { it.contains(token) || it.contains(elKey) })
+            assertTrue(stored.none { it.contains(saved.accessKey) }) // even the access key is only stored encrypted
+            assertEquals("", edits[1].text.toString()); assertEquals("", edits[2].text.toString())
+        } finally {
+            twilio.shutdown()
+        }
+    }
 }
