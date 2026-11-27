@@ -132,6 +132,8 @@ class ScreensTest {
         waitFor(a, "Calling Dustin")
     }
 
+    // A tall screen so the scrolling list draws all 4 cards at once.
+    @Config(qualifiers = "w411dp-h3000dp")
     @Test fun historyTabListsCallsWithOutcomesAndPendingPrices() {
         val a = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         a.findViewById<BottomNavigationView>(R.id.bottom_nav).selectedItemId = R.id.nav_history
