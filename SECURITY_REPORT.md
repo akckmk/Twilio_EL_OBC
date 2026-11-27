@@ -168,10 +168,19 @@ The app was tested two ways:
 - Keep a screen lock on.
 - A fingerprint check before ending calls could be added, but it would make the widget two steps.
 
-**R-4. Signing key.**
-- Each build is signed with a throwaway key. That doesn't weaken your keys' protection, but it means:
-  - **Only install APKs from your own repo's Actions page, or from this chat.**
-  - An update may need uninstalling the old version first.
+**R-4. Permanent signing key (added 27 Nov 2026, after the test).**
+- **Why it's needed:** each build used to be signed with a throwaway key. Android refuses to update an app signed with a different key, so every update meant uninstalling, which wiped the saved keys.
+- **What changed:** all builds are now signed with **one permanent key**, so updates install over the old version and **your saved keys stay**.
+- **How it's protected:**
+  - The key file (`android/signing/agent-control-release.p12`) is in the repo, which is **public**, but it's locked. It uses a 4096-bit RSA key, encrypted with AES-256 (PBKDF2-SHA256) under a 40-character random password.
+  - The password exists only in the GitHub secret `ANDROID_SIGNING_PASSWORD` and your password manager.
+  - Without the password the file is useless. Guessing a 40-character random password isn't feasible.
+- **Built-in checks:**
+  - The build pipeline checks that every APK's signature fingerprint matches `6ac2f9ce…9e490883` and refuses anything else.
+  - A test (`KeepSettingsTest`) fails if anyone renames where the keys are stored, since that would also wipe them on update.
+- **Your part:**
+  - Keep the signing password secret.
+  - Only install APKs from your own repo's Actions page or from this chat. Android will refuse any "update" not signed with your key, which protects you.
 
 **R-5. Not added, by choice.**
 - **Certificate pinning:** Twilio and ElevenLabs rotate their certificates, and a pinned app would suddenly stop working. System-CA-only trust plus HTTPS-only is the safer trade-off.
@@ -187,7 +196,7 @@ The app was tested two ways:
 
 ```
 cd android
-./gradlew testReleaseUnitTest   # 13 tests: 8 function tests + 5 attack tests
+./gradlew testReleaseUnitTest   # 15 tests: 8 function, 5 attack, 2 keep-settings
 ./gradlew lintRelease
 ```
 

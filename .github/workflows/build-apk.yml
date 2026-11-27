@@ -17,6 +17,11 @@ jobs:
     defaults:
       run:
         working-directory: android
+    env:
+      ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+      # Fingerprint of the one permanent signing key. Every APK must match it,
+      # so updates always install over the old version and keep your saved keys.
+      EXPECTED_CERT_SHA256: 6ac2f9ce27838bccdb632db9ec150c16a3a56b3c81792a95668843569e490883
     steps:
       # Actions are pinned to exact commits (the v4 tags as of Nov 2026),
       # so a hijacked tag can't swap in different code.
@@ -33,6 +38,13 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Check the signing password secret is set
+        run: |
+          if [ -z "$ANDROID_SIGNING_PASSWORD" ]; then
+            echo "::error::Add the repo secret ANDROID_SIGNING_PASSWORD (see README, 'One-time setup for updates')."
+            exit 1
+          fi
+
       - name: Run tests (including the attack tests)
         run: ./gradlew testReleaseUnitTest --no-daemon
 
@@ -45,6 +57,14 @@ jobs:
           if "$AAPT" dump xmltree --file AndroidManifest.xml app/build/outputs/apk/release/app-release.apk | grep -q 'debuggable.*=true'; then
             echo "::error::APK is debuggable"; exit 1
           fi
+
+      - name: Check the APK is signed with the permanent key
+        run: |
+          SIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          GOT=$("$SIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -m1 'SHA-256 digest' | awk '{print $NF}')
+          WANT=$(echo "$EXPECTED_CERT_SHA256" | tr -d ' ')
+          if [ "$GOT" != "$WANT" ]; then echo "::error::APK signed with the wrong key ($GOT)"; exit 1; fi
+          echo "Signed with the permanent key."
 
       - name: Name the APK
         run: cp app/build/outputs/apk/release/app-release.apk "AgentControl-${{ github.run_number }}.apk"

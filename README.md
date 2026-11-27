@@ -63,7 +63,19 @@ If an agent's button says "No live calls found" but you know one is live, use **
 
 GitHub tests and builds the APK automatically whenever something in `android/` changes. The build fails if any attack test fails or the APK is debuggable. Go to **Actions**, then **Build Android APK**, then the newest green run, then **Artifacts**.
 
-Each build is signed with a new throwaway key. If Android refuses to install a newer version over the old one, uninstall the old one first, then paste your keys in again.
+**Updates keep your saved keys.** Every build is signed with the same permanent key, so a new APK installs right over the old one. Tap it, tap **Update**, and your keys are still there. No uninstalling.
+
+### One-time setup for updates
+
+GitHub needs the signing password to build signed updates. Add it once:
+
+1. Open https://github.com/akckmk/Twilio_EL_OBC/settings/secrets/actions/new
+2. In **Name**, type `ANDROID_SIGNING_PASSWORD`.
+3. In **Secret**, paste the password from the `signing-password.txt` file you were given.
+4. Tap **Add secret**.
+5. Save the same password in your password manager. If it's lost, future updates would need a reinstall.
+
+Without this secret, the GitHub build stops with a clear message instead of making an APK that can't update.
 
 ## For the curious
 

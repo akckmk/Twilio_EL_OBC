@@ -17,6 +17,8 @@ import javax.crypto.spec.GCMParameterSpec
  * and never leaves it, so the saved text is useless if copied off the phone.
  */
 object SecureStore {
+    // DO NOT RENAME these three. Updates keep your saved keys only because a new
+    // version finds them under the same names. Changing any of them = re-enter keys.
     private const val KEY_ALIAS = "agent_control_settings_key_v2"
     private const val PREFS = "secure_settings"
     private const val FIELD = "blob_v2"

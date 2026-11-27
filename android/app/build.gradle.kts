@@ -3,6 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Version number = minutes since 1 Jan 2024. It always goes up, whether the APK is built
+// on GitHub or anywhere else, so Android always accepts a newer build as an update.
+val buildMinute = ((System.currentTimeMillis() / 60_000L) - 28_401_120L).toInt()
+
+// The one permanent signing key. Every build signed with it installs over the previous
+// one and KEEPS your saved keys. The file is locked with a password that only lives in
+// the GitHub secret ANDROID_SIGNING_PASSWORD (and your password manager).
+val signingPassword: String? = System.getenv("ANDROID_SIGNING_PASSWORD")
+
 android {
     namespace = "com.agentcontrol.app"
     compileSdk = 35
@@ -12,8 +21,18 @@ android {
         minSdk = 29 // Android 10+: has the system fix for task-hijacking (StrandHogg 2.0)
         targetSdk = 35
         // GitHub Actions passes the run number, so each build counts up.
-        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
+        versionCode = buildMinute
+        versionName = "1.1.$buildMinute"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("signing/agent-control-release.p12")
+            storeType = "pkcs12"
+            storePassword = signingPassword
+            keyAlias = "agentcontrol"
+            keyPassword = signingPassword
+        }
     }
 
     buildTypes {
@@ -23,9 +42,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the standard debug key so the build needs no secrets.
-            // (Signing proves who built an update; it doesn't protect your keys.)
-            signingConfig = signingConfigs.getByName("debug")
+            // Without the password the APK is left unsigned and can't be installed,
+            // so a build can never quietly switch keys (which would force a reinstall).
+            signingConfig = if (signingPassword.isNullOrEmpty()) null else signingConfigs.getByName("release")
         }
     }
     compileOptions {
