@@ -40,7 +40,7 @@ class EndCallWidget : AppWidgetProvider() {
         val pending = goAsync() // lets the network call finish after onReceive returns
         scope.launch {
             try {
-                val result = CallControl(settings).end(choice.agentId)
+                val result = Api(settings).end(choice.agentId)
                 toast(context, result.message)
             } finally {
                 draw(context, manager, widgetId, busy = false)

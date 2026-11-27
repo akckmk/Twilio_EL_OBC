@@ -3,6 +3,10 @@
         <item name="colorPrimary">@color/brand</item>
     </style>
 
+    <style name="Theme.AgentControl.WithBar" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">@color/brand</item>
+    </style>
+
     <style name="EndButton" parent="Widget.Material3.Button">
         <item name="backgroundTint">@color/end_red</item>
         <item name="android:textColor">@color/on_red</item>

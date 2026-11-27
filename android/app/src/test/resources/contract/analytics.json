@@ -1,0 +1,345 @@
+{
+  "ok": true,
+  "from": "2026-10-28",
+  "to": "2026-11-27",
+  "stale": false,
+  "cachedAt": 1795798800000,
+  "totalCalls": 4,
+  "answeredCalls": 2,
+  "answerRate": 0.5,
+  "avgTalkSecs": 53,
+  "twilioPricesPending": 3,
+  "callsPerDay": [
+    {
+      "day": "2026-10-28",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-10-29",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-10-30",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-10-31",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-01",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-02",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-03",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-04",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-05",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-06",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-07",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-08",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-09",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-10",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-11",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-12",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-13",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-14",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-15",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-16",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-17",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-18",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-19",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-20",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-21",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-22",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-23",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-24",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-25",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-26",
+      "calls": 0,
+      "answered": 0
+    },
+    {
+      "day": "2026-11-27",
+      "calls": 4,
+      "answered": 2
+    }
+  ],
+  "busiestHours": [
+    {
+      "hour": 0,
+      "calls": 0
+    },
+    {
+      "hour": 1,
+      "calls": 0
+    },
+    {
+      "hour": 2,
+      "calls": 0
+    },
+    {
+      "hour": 3,
+      "calls": 0
+    },
+    {
+      "hour": 4,
+      "calls": 0
+    },
+    {
+      "hour": 5,
+      "calls": 0
+    },
+    {
+      "hour": 6,
+      "calls": 0
+    },
+    {
+      "hour": 7,
+      "calls": 0
+    },
+    {
+      "hour": 8,
+      "calls": 0
+    },
+    {
+      "hour": 9,
+      "calls": 0
+    },
+    {
+      "hour": 10,
+      "calls": 1
+    },
+    {
+      "hour": 11,
+      "calls": 3
+    },
+    {
+      "hour": 12,
+      "calls": 0
+    },
+    {
+      "hour": 13,
+      "calls": 0
+    },
+    {
+      "hour": 14,
+      "calls": 0
+    },
+    {
+      "hour": 15,
+      "calls": 0
+    },
+    {
+      "hour": 16,
+      "calls": 0
+    },
+    {
+      "hour": 17,
+      "calls": 0
+    },
+    {
+      "hour": 18,
+      "calls": 0
+    },
+    {
+      "hour": 19,
+      "calls": 0
+    },
+    {
+      "hour": 20,
+      "calls": 0
+    },
+    {
+      "hour": 21,
+      "calls": 0
+    },
+    {
+      "hour": 22,
+      "calls": 0
+    },
+    {
+      "hour": 23,
+      "calls": 0
+    }
+  ],
+  "outcomes": {
+    "completed": 1,
+    "no_answer": 1,
+    "busy": 1,
+    "failed": 0,
+    "ended_by_you": 1,
+    "in_progress": 0
+  },
+  "byAgent": [
+    {
+      "agentId": null,
+      "agentName": "Unknown agent",
+      "calls": 2,
+      "answered": 0,
+      "credits": 0,
+      "elevenUsd": 0,
+      "twilioUsd": 0,
+      "twilioPending": 2,
+      "totalUsd": 0
+    },
+    {
+      "agentId": "agent_f",
+      "agentName": "Fergus",
+      "calls": 1,
+      "answered": 1,
+      "credits": 900,
+      "elevenUsd": 0.18,
+      "twilioUsd": 0,
+      "twilioPending": 1,
+      "totalUsd": 0.18
+    },
+    {
+      "agentId": "agent_m",
+      "agentName": "Merida",
+      "calls": 1,
+      "answered": 1,
+      "credits": 400,
+      "elevenUsd": 0.08,
+      "twilioUsd": 0.03,
+      "twilioPending": 0,
+      "totalUsd": 0.11
+    }
+  ],
+  "totals": {
+    "byDay": [
+      {
+        "period": "2026-11-27",
+        "calls": 4,
+        "credits": 1300,
+        "elevenUsd": 0.26,
+        "twilioUsd": 0.03,
+        "twilioPending": 3,
+        "totalUsd": 0.29
+      }
+    ],
+    "byWeek": [
+      {
+        "period": "2026-11-23",
+        "calls": 4,
+        "credits": 1300,
+        "elevenUsd": 0.26,
+        "twilioUsd": 0.03,
+        "twilioPending": 3,
+        "totalUsd": 0.29
+      }
+    ],
+    "byMonth": [
+      {
+        "period": "2026-11",
+        "calls": 4,
+        "credits": 1300,
+        "elevenUsd": 0.26,
+        "twilioUsd": 0.03,
+        "twilioPending": 3,
+        "totalUsd": 0.29
+      }
+    ]
+  }
+}

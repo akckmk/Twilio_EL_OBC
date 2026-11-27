@@ -2,33 +2,19 @@ package com.agentcontrol.app
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
-/** The list of agents, each with a big red "End call" button. */
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var list: LinearLayout
-    private lateinit var status: TextView
-    private lateinit var refresher: SwipeRefreshLayout
+/** The dashboard: Agents, Live, History, Usage and Analytics tabs. */
+class MainActivity : SecureActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hardenWindow()
         if (SecureStore.load(this) == null) {
-            // First launch: go and set things up.
+            // First launch (or after upgrading from the version that held provider keys).
             startActivity(Intent(this, SettingsActivity::class.java))
             finish()
             return
@@ -37,18 +23,34 @@ class MainActivity : AppCompatActivity() {
         findViewById<android.view.View>(R.id.root).padForSystemBars()
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
 
-        list = findViewById(R.id.agent_list)
-        status = findViewById(R.id.status)
-        refresher = findViewById(R.id.refresher)
-        refresher.setOnRefreshListener { loadAgents() }
-
-        val endAll = findViewById<Button>(R.id.end_all)
-        endAll.setOnClickListener { endCall("all", getString(R.string.all_agents), endAll) }
+        val nav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        nav.setOnItemSelectedListener { show(it.itemId); true }
+        if (savedInstanceState == null) nav.selectedItemId = intent.getIntExtra(EXTRA_TAB, R.id.nav_agents)
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (::list.isInitialized) loadAgents()
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getIntExtra(EXTRA_TAB, 0).takeIf { it != 0 }?.let {
+            findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = it
+        }
+    }
+
+    override fun onUnlocked() {
+        CallWatchService.sync(this)
+    }
+
+    private fun show(id: Int) {
+        val tag = id.toString()
+        val fm = supportFragmentManager
+        if (fm.findFragmentByTag(tag)?.isVisible == true) return
+        val f: Fragment = fm.findFragmentByTag(tag) ?: when (id) {
+            R.id.nav_live -> LiveFragment()
+            R.id.nav_history -> HistoryFragment()
+            R.id.nav_usage -> UsageFragment()
+            R.id.nav_analytics -> AnalyticsFragment()
+            else -> AgentsFragment()
+        }
+        fm.beginTransaction().replace(R.id.container, f, tag).commit()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -57,49 +59,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_refresh -> { loadAgents(); true }
+        R.id.action_refresh -> { (supportFragmentManager.findFragmentById(R.id.container) as? Refreshable)?.refresh(); true }
+        R.id.action_contacts -> { startActivity(Intent(this, ContactsActivity::class.java)); true }
         R.id.action_settings -> { startActivity(Intent(this, SettingsActivity::class.java)); true }
         else -> super.onOptionsItemSelected(item)
     }
 
-    private fun loadAgents() {
-        val settings = SecureStore.load(this) ?: return
-        refresher.isRefreshing = true
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                try { Result.success(CallControl(settings).agents()) } catch (e: Exception) { Result.failure(e) }
-            }
-            refresher.isRefreshing = false
-            list.removeAllViews()
-            result.onSuccess { agents ->
-                status.text = if (agents.isEmpty()) getString(R.string.no_agents) else ""
-                for (agent in agents) addAgentRow(agent)
-            }.onFailure {
-                status.text = it.message
-            }
-        }
-    }
-
-    private fun addAgentRow(agent: CallControl.Agent) {
-        val row = LayoutInflater.from(this).inflate(R.layout.item_agent, list, false)
-        row.findViewById<TextView>(R.id.agent_name).text = agent.name
-        val button = row.findViewById<Button>(R.id.end_call)
-        button.contentDescription = getString(R.string.end_call_for, agent.name)
-        button.setOnClickListener { endCall(agent.id, agent.name, button) }
-        list.addView(row)
-    }
-
-    private fun endCall(agentId: String, label: String, button: Button) {
-        val settings = SecureStore.load(this) ?: return
-        val originalText = button.text
-        button.isEnabled = false
-        button.text = getString(R.string.ending)
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { CallControl(settings).end(agentId) }
-            button.isEnabled = true
-            button.text = originalText
-            status.text = result.message
-            Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
-        }
+    companion object {
+        const val EXTRA_TAB = "tab"
     }
 }
+
+interface Refreshable { fun refresh() }

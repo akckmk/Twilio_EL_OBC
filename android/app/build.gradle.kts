@@ -51,6 +51,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -64,8 +67,18 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.json:json:20240303") // real org.json for tests on the computer
+    // Runs the real screens on a simulated phone. The native add-on isn't needed
+    // (no database, legacy graphics) and is often rate-limited by Maven Central.
+    testImplementation("org.robolectric:robolectric:4.14.1") {
+        exclude(group = "org.robolectric", module = "nativeruntime-dist-compat")
+    }
+    testImplementation("androidx.test:core:1.6.1")
 }

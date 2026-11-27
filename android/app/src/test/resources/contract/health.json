@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "message": "Everything is set up.",
+  "missingElevenLabsPermissions": [],
+  "checks": [
+    {
+      "name": "ElevenLabs: list agents",
+      "ok": true
+    },
+    {
+      "name": "ElevenLabs: list conversations",
+      "ok": true
+    },
+    {
+      "name": "ElevenLabs: subscription / credits",
+      "ok": true
+    },
+    {
+      "name": "Twilio: calls",
+      "ok": true
+    },
+    {
+      "name": "Twilio: balance",
+      "ok": true
+    },
+    {
+      "name": "Twilio: usage this month",
+      "ok": true
+    },
+    {
+      "name": "Twilio Sync (remembers matches and calls you ended)",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "serverTime": 1795798800,
+  "calls": [
+    {
+      "callSid": "CAbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "conversationId": null,
+      "agentId": null,
+      "agentName": "Unknown agent",
+      "matchedBy": null,
+      "direction": "outbound",
+      "number": "+15550002222",
+      "status": "ringing",
+      "dialedAt": 1795798792,
+      "answeredAt": null
+    },
+    {
+      "callSid": "CAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "conversationId": "conv_m",
+      "agentId": "agent_m",
+      "agentName": "Merida",
+      "matchedBy": "call_sid",
+      "direction": "outbound",
+      "number": "+15550001111",
+      "status": "in-progress",
+      "dialedAt": 1795798710,
+      "answeredAt": 1795798720
+    }
+  ],
+  "cachedAt": 1795798800000
+}

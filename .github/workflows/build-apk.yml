@@ -38,15 +38,23 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Run tests (contract, security, and every screen on a simulated phone)
+        run: ./gradlew testReleaseUnitTest --no-daemon
+
+      - name: Save the test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-report
+          path: android/app/build/reports/tests/
+          retention-days: 7
+
       - name: Check the signing password secret is set
         run: |
           if [ -z "$ANDROID_SIGNING_PASSWORD" ]; then
-            echo "::error::Add the repo secret ANDROID_SIGNING_PASSWORD (see README, 'One-time setup for updates')."
+            echo "::error::Tests passed. To build the APK, add the repo secret ANDROID_SIGNING_PASSWORD (see README, 'One-time setup for updates')."
             exit 1
           fi
-
-      - name: Run tests (including the attack tests)
-        run: ./gradlew testReleaseUnitTest --no-daemon
 
       - name: Build the release APK
         run: ./gradlew assembleRelease --no-daemon

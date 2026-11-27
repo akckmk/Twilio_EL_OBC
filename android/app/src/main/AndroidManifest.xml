@@ -4,9 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Lets the app hide other apps' floating windows over its own screens. -->
     <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
+    <!-- Optional call notifications (Settings). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Fingerprint lock (Settings). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- allowBackup=false keeps the encrypted settings off cloud backups. -->
     <application
+        android:name=".AgentControlApp"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/no_backup"
@@ -20,6 +27,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,6 +41,28 @@
             android:taskAffinity=""
             android:label="@string/settings"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".CallDetailActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AgentControl.WithBar" />
+
+        <activity
+            android:name=".ContactsActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AgentControl.WithBar" />
+
+        <!-- Optional: watches for calls starting/ending to show notifications. -->
+        <service
+            android:name=".CallWatchService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Notifies the user when their own AI phone agents start or end a call." />
+        </service>
 
         <activity
             android:name=".WidgetConfigActivity"

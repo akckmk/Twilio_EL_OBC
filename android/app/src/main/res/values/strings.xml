@@ -2,29 +2,37 @@
     <string name="app_name">Agent Control</string>
     <string name="settings">Settings</string>
     <string name="refresh">Refresh</string>
+    <string name="loading">Loading…</string>
 
-    <string name="settings_intro">Paste these once. They stay on this phone, encrypted, and only go to Twilio and ElevenLabs.</string>
-
-    <string name="twilio_heading">1. Twilio</string>
-    <string name="help_twilio">Open <a href="https://console.twilio.com/us1/account/keys-credentials/api-keys/create">Twilio → API keys → Create</a>. Name it Agent Control, keep the type Standard, tap Create. Copy the two values it shows (SID and Secret). Your Account SID (starts with AC) is on the Twilio home page.</string>
-    <string name="account_sid">Account SID (starts with AC)</string>
-    <string name="key_sid">API key SID (starts with SK)</string>
-    <string name="key_secret">API key Secret</string>
-
-    <string name="elevenlabs_heading">2. ElevenLabs</string>
-    <string name="help_elevenlabs">Open <a href="https://elevenlabs.io/app/settings/api-keys">ElevenLabs → API keys</a> and tap Create. Turn on Restrict Key, set ElevenLabs Agents to Write, leave the rest at No Access. Copy the key.</string>
-    <string name="el_key">ElevenLabs API key</string>
-
+    <!-- Settings -->
+    <string name="settings_intro">Enter these once. They\'re stored encrypted on this phone. The app talks only to your backend; your Twilio and ElevenLabs keys stay there, never on the phone.</string>
+    <string name="backend_url">Backend URL</string>
+    <string name="access_key">Access key</string>
     <string name="save">Test and save</string>
+    <string name="save_short">Save</string>
     <string name="saved_hidden">Saved (hidden). Leave empty to keep.</string>
-    <string name="bad_account_sid">The Account SID should start with AC and be 34 characters long.</string>
-    <string name="bad_key_sid">The API key SID should start with SK and be 34 characters long. (This is not the Account SID.)</string>
-    <string name="bad_key_secret">The API key Secret looks too short. Paste the Secret Twilio showed you.</string>
-    <string name="bad_el_key">The ElevenLabs key looks too short.</string>
-    <string name="no_internet">Couldn\'t connect. Check your internet connection.</string>
-    <string name="settings_testing">Testing your keys…</string>
+    <string name="settings_bad_url">That URL doesn\'t look right. It should start with https://</string>
+    <string name="settings_short_key">The access key should be at least 32 characters.</string>
+    <string name="settings_testing">Testing the connection…</string>
     <string name="settings_failed">Not saved: %1$s</string>
+    <string name="save_first">Save the URL and key first.</string>
+    <string name="setting_notifications">Call notifications</string>
+    <string name="setting_notifications_help">Notifies you when a call starts and ends. Checks every 30 seconds (every 3 while a call is live), so a notice can be up to about 30 seconds late. Shows a small \"Watching for calls\" notification while on.</string>
+    <string name="notify_permission_needed">Allow notifications for Agent Control to use this.</string>
+    <string name="setting_fingerprint">Require fingerprint to open</string>
+    <string name="setting_fingerprint_help">Asks for your fingerprint (or phone PIN) whenever you open the app. Home-screen widgets still end calls with one tap.</string>
+    <string name="no_fingerprint">Set up a fingerprint or screen lock on the phone first.</string>
+    <string name="lock_subtitle">Unlock to see your calls</string>
+    <string name="check_setup">Check backend setup</string>
 
+    <!-- Tabs -->
+    <string name="tab_agents">Agents</string>
+    <string name="tab_live">Live</string>
+    <string name="tab_history">History</string>
+    <string name="tab_usage">Usage</string>
+    <string name="tab_analytics">Analytics</string>
+
+    <!-- Agents + widgets (unchanged) -->
     <string name="end_all">End all calls</string>
     <string name="end_call">End call</string>
     <string name="end_call_for">End call for %1$s</string>
@@ -33,7 +41,6 @@
     <string name="all_agents">All agents</string>
     <string name="all_agents_short">All</string>
     <string name="pull_hint">Pull down to refresh the list.</string>
-
     <string name="widget_name">End call</string>
     <string name="widget_description">One tap ends one agent\'s live call.</string>
     <string name="widget_label">End: %1$s</string>
@@ -45,4 +52,96 @@
     <string name="widget_load_failed">Could not load agents: %1$s</string>
     <string name="open_settings">Open settings</string>
     <string name="loading_agents">Loading agents…</string>
+
+    <!-- Live -->
+    <string name="no_live_calls">No live calls right now.</string>
+    <string name="calling">Calling</string>
+    <string name="last_updated">Last updated %1$s</string>
+    <string name="stale">showing saved data (service busy)</string>
+    <string name="timer_ringing">Ringing for %1$s</string>
+    <string name="timer_talking">Talking %1$s · rang %2$s</string>
+    <string name="timer_queued">Waiting to dial</string>
+
+    <!-- Notifications -->
+    <string name="channel_calls">Calls starting and ending</string>
+    <string name="channel_watch">Watching for calls</string>
+    <string name="watching_title">Watching for calls</string>
+    <string name="watching_text">Turn off in Agent Control settings.</string>
+    <string name="notify_started">Call started</string>
+    <string name="notify_ended">Call ended</string>
+
+    <!-- History -->
+    <string name="all_outcomes">All outcomes</string>
+    <string name="search_hint">Search name or number</string>
+    <string name="history_count">%1$d of %2$d calls</string>
+    <string name="truncated">Showing the first 1,000 calls in this range. Pick fewer days to see the rest.</string>
+    <string name="showing_saved">Showing the last saved list.</string>
+    <string name="range_label">%1$s → %2$s</string>
+    <string name="pick_dates">Pick dates</string>
+    <string name="rang">Rang</string>
+    <string name="lasted">Lasted</string>
+    <string name="credits">Credits</string>
+    <string name="pending">pending</string>
+
+    <!-- Detail -->
+    <string name="call_details">Call details</string>
+    <string name="outcome">Outcome</string>
+    <string name="estimate">(estimate)</string>
+    <string name="elevenlabs_cost">ElevenLabs cost</string>
+    <string name="twilio_cost">Twilio cost</string>
+    <string name="how_it_ended">How it ended</string>
+    <string name="no_conversation">No ElevenLabs conversation was matched to this call, so there\'s no transcript or recording.</string>
+    <string name="recording">Recording</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="loading_part">Loading recording %1$d of %2$d…</string>
+    <string name="recording_failed">Couldn\'t load the recording.</string>
+    <string name="summary">Summary</string>
+    <string name="call_successful">ElevenLabs rated the call: %1$s</string>
+    <string name="analysis">Analysis and evaluation</string>
+    <string name="transcript">Transcript</string>
+    <string name="no_transcript">No transcript.</string>
+    <string name="them">Them</string>
+
+    <!-- Usage -->
+    <string name="elevenlabs_credits">ElevenLabs credits</string>
+    <string name="credits_left">%1$s left</string>
+    <string name="used_this_period">Used this billing period</string>
+    <string name="plan_total">Plan\'s monthly total</string>
+    <string name="plan">Plan</string>
+    <string name="resets_on">Resets on</string>
+    <string name="balance">Account balance</string>
+    <string name="spend_this_month">Spend this month</string>
+    <string name="twilio_balance_note">From Twilio\'s billing API. Twilio says balance changes may take a while to show.</string>
+    <string name="cost_by_agent">Cost by agent</string>
+    <string name="last_92_days">Last 92 days</string>
+    <string name="prices_pending">%1$d call prices are still pending at Twilio and aren\'t in these totals yet.</string>
+    <string name="by_day">By day</string>
+    <string name="by_week">By week</string>
+    <string name="week_of">Week of </string>
+    <string name="by_month">By month</string>
+    <string name="no_calls_yet">No calls in this period.</string>
+    <string name="cost_note">ElevenLabs credits are exact. ElevenLabs dollars are ElevenLabs\' own estimate. Twilio dollars are exact once Twilio posts them, and cover the phone connection only.</string>
+
+    <!-- Analytics -->
+    <string name="overview">Overview</string>
+    <string name="n_calls">%1$d calls</string>
+    <string name="answer_rate">Answer rate</string>
+    <string name="avg_length">Average call length (answered)</string>
+    <string name="calls_per_day">Calls per day</string>
+    <string name="calls_per_day_legend">Grey = all calls, green = answered.</string>
+    <string name="credits_by_agent">Credits by agent</string>
+    <string name="dollars_by_agent">Dollars by agent</string>
+    <string name="busiest_hours">Busiest times of day (Eastern)</string>
+    <string name="calls_by_outcome">Calls by outcome</string>
+
+    <!-- Contacts -->
+    <string name="contacts">Contacts</string>
+    <string name="add_contact">Add a name</string>
+    <string name="edit_contact">Edit name</string>
+    <string name="contacts_help">Names you add here replace numbers everywhere in the app. Your phone\'s contacts are never read.</string>
+    <string name="no_contacts">No names yet.</string>
+    <string name="phone_number">Phone number</string>
+    <string name="name">Name</string>
+    <string name="delete">Delete</string>
 </resources>

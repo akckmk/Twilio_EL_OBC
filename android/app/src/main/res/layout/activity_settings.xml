@@ -22,102 +22,44 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
             android:text="@string/settings_intro" />
 
-        <!-- Twilio -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/twilio_heading"
-            android:textAppearance="?attr/textAppearanceTitleLarge" />
-
-        <TextView
-            android:id="@+id/help_twilio"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/help_twilio" />
-
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/account_sid">
+            android:hint="@string/backend_url">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/account_sid"
+                android:id="@+id/url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textNoSuggestions|textVisiblePassword"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:importantForAutofill="no"
-                android:imeOptions="flagNoPersonalizedLearning" />
+                android:inputType="textUri|textNoSuggestions" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/key_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:hint="@string/key_sid">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/key_sid"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textNoSuggestions|textVisiblePassword"
-                android:importantForAutofill="no"
-                android:imeOptions="flagNoPersonalizedLearning" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="@string/key_secret"
+            android:hint="@string/access_key"
             app:endIconMode="password_toggle">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/key_secret"
+                android:id="@+id/key"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPassword"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:importantForAutofill="no"
-                android:imeOptions="flagNoPersonalizedLearning" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- ElevenLabs -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/elevenlabs_heading"
-            android:textAppearance="?attr/textAppearanceTitleLarge" />
-
-        <TextView
-            android:id="@+id/help_elevenlabs"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/help_elevenlabs" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/el_key"
-            app:endIconMode="password_toggle">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/el_key"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword"
-                android:importantForAutofill="no"
-                android:imeOptions="flagNoPersonalizedLearning" />
+                android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/save"
-            android:filterTouchesWhenObscured="true"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
+            android:filterTouchesWhenObscured="true"
             android:minHeight="64dp"
             android:text="@string/save" />
 
@@ -127,5 +69,55 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/notifications"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:filterTouchesWhenObscured="true"
+            android:text="@string/setting_notifications" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.7"
+            android:text="@string/setting_notifications_help" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/fingerprint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:filterTouchesWhenObscured="true"
+            android:text="@string/setting_fingerprint" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.7"
+            android:text="@string/setting_fingerprint_help" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/health"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/check_setup" />
+
+        <TextView
+            android:id="@+id/health_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/contacts"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/contacts" />
     </LinearLayout>
 </ScrollView>

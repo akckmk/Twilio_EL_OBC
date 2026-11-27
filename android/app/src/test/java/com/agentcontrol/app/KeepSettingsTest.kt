@@ -1,16 +1,16 @@
 package com.agentcontrol.app
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * Guards "update without re-entering keys". Saved keys survive an update only if the
- * new version looks for them under exactly the same names, and the app is signed
- * with the same permanent key. If this test fails, a change would wipe saved keys.
+ * Guards "update without re-entering settings". Saved settings survive an update only if
+ * the new version looks for them under the same names and the app keeps the same
+ * signing key. If this fails, a change would wipe saved settings.
  */
 class KeepSettingsTest {
-
     private fun source(path: String) = File(path).readText()
 
     @Test fun storageNamesNeverChange() {
@@ -18,8 +18,13 @@ class KeepSettingsTest {
         assertTrue(s.contains("KEY_ALIAS = \"agent_control_settings_key_v2\""))
         assertTrue(s.contains("PREFS = \"secure_settings\""))
         assertTrue(s.contains("FIELD = \"blob_v2\""))
-        for (field in listOf("accountSid", "apiKeySid", "apiKeySecret", "elevenLabsKey")) {
-            assertTrue("JSON field $field renamed", s.contains("\"$field\""))
+        assertTrue(s.contains(".put(\"baseUrl\"") && s.contains(".put(\"accessKey\""))
+    }
+
+    @Test fun appNeverStoresProviderKeys() {
+        for (f in File("src/main/java/com/agentcontrol/app").listFiles()!!) {
+            val s = f.readText()
+            assertFalse(f.name, s.contains("xi-api-key") || s.contains("api.twilio.com") || s.contains("api.elevenlabs.io"))
         }
     }
 

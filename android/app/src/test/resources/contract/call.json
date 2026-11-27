@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "call": {
+    "callSid": "CA11111111111111111111111111111111",
+    "direction": "outbound",
+    "number": "+15550001111",
+    "startTime": 1795791600,
+    "ringSecs": 10,
+    "talkSecs": 60,
+    "twilioStatus": "completed",
+    "outcome": "completed",
+    "twilioUsd": 0.028,
+    "twilioPricePending": false
+  },
+  "conversation": {
+    "id": "conv_1",
+    "matchedBy": "call_sid",
+    "agentId": "agent_m",
+    "agentName": "Merida",
+    "status": "done",
+    "credits": 400,
+    "elevenUsd": 0.08,
+    "terminationReason": null,
+    "title": "Booked",
+    "summary": "Booked a cleaning.",
+    "callSuccessful": "success",
+    "evaluations": [
+      {
+        "id": "stayed_in_window",
+        "result": "success",
+        "rationale": "ok"
+      }
+    ],
+    "dataCollection": [],
+    "transcript": [
+      {
+        "role": "agent",
+        "text": "Hi",
+        "t": 0
+      },
+      {
+        "role": "user",
+        "text": "Hello",
+        "t": 2
+      }
+    ],
+    "hasAudio": true
+  },
+  "cachedAt": 1795798800000
+}
