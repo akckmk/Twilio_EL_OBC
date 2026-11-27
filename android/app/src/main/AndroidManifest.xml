@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lets the app hide other apps' floating windows over its own screens. -->
+    <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
 
     <!-- allowBackup=false keeps the encrypted settings off cloud backups. -->
     <application
@@ -11,11 +13,14 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false"
         android:theme="@style/Theme.AgentControl">
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -25,12 +30,15 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
+            android:taskAffinity=""
             android:label="@string/settings"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".WidgetConfigActivity"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:label="@string/widget_pick_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />

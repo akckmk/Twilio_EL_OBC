@@ -51,7 +51,7 @@ class CallControlTest {
         settings,
         elevenLabsBase = server.url("/el").toString().trimEnd('/'),
         twilioBase = server.url("/tw").toString().trimEnd('/'),
-        pause = {},
+        pause = { Thread.sleep(300) }, // the app waits 1.5 s for ElevenLabs to catch up
     )
 
     private fun json(body: Any) = MockResponse().setBody(body.toString())

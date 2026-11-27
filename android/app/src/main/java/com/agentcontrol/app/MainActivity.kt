@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hardenWindow()
         if (SecureStore.load(this) == null) {
             // First launch: go and set things up.
             startActivity(Intent(this, SettingsActivity::class.java))

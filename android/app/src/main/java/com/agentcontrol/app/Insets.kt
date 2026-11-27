@@ -1,6 +1,9 @@
 package com.agentcontrol.app
 
+import android.app.Activity
+import android.os.Build
 import android.view.View
+import android.view.WindowManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -12,4 +15,14 @@ fun View.padForSystemBars() {
         v.setPadding(start + bars.left, top + bars.top, end + bars.right, bottom + bars.bottom)
         insets
     }
+}
+
+/**
+ * Call before setContentView in every screen.
+ * - Blocks screenshots, screen recording and the preview in Recent apps.
+ * - Hides other apps' floating windows over ours, so nobody can trick a tap (Android 12+).
+ */
+fun Activity.hardenWindow() {
+    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setHideOverlayWindows(true)
 }

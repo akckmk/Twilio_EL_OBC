@@ -19,11 +19,12 @@ class WidgetConfigActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hardenWindow()
         // If you back out, the widget is not added.
         setResult(RESULT_CANCELED)
         widgetId = intent?.extras?.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
             ?: AppWidgetManager.INVALID_APPWIDGET_ID
-        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return }
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || !isOurWidget(widgetId)) { finish(); return }
 
         setContentView(R.layout.activity_widget_config)
         findViewById<android.view.View>(R.id.root).padForSystemBars()
@@ -56,11 +57,18 @@ class WidgetConfigActivity : AppCompatActivity() {
         }
     }
 
+    /** Another app could open this screen with any widget number; only accept our own widgets. */
+    private fun isOurWidget(id: Int): Boolean {
+        val provider = AppWidgetManager.getInstance(this).getAppWidgetInfo(id)?.provider ?: return false
+        return provider.packageName == packageName && provider.className == EndCallWidget::class.java.name
+    }
+
     private fun addChoice(list: LinearLayout, text: String, onClick: () -> Unit) {
         val b = MaterialButton(this).apply {
             this.text = text
             textSize = 18f
             minHeight = (64 * resources.displayMetrics.density).toInt()
+            filterTouchesWhenObscured = true
             setOnClickListener { onClick() }
         }
         list.addView(b, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))

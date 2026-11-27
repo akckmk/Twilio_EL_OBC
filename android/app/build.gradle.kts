@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.agentcontrol.app"
-        minSdk = 26
+        minSdk = 29 // Android 10+: has the system fix for task-hijacking (StrandHogg 2.0)
         targetSdk = 35
         // GitHub Actions passes the run number, so each build counts up.
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
@@ -18,7 +18,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Not debuggable: a USB-connected computer can't read the app's data or memory.
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Signed with the standard debug key so the build needs no secrets.
+            // (Signing proves who built an update; it doesn't protect your keys.)
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {

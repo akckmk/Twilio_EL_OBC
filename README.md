@@ -31,10 +31,15 @@ The app has links and these same hints right on the setup screen.
 
 ## Security
 
-- **Keys stay on the phone.** They're encrypted using the phone's secure hardware (Android Keystore). They're excluded from backups and only ever sent to `api.twilio.com` and `api.elevenlabs.io` over HTTPS.
-- **The app never uses your main Twilio Auth Token,** only an API key. If your phone is lost, delete the key in Twilio (**API keys**, then the key, then **Delete**) and in ElevenLabs. That instantly cuts the app off without affecting anything else.
-- **Limited ElevenLabs access.** The ElevenLabs key is restricted to agents, so it can't spend credits on speech generation.
-- **No server.** Nothing is exposed on the internet.
+A full security test was run on 27 Nov 2026; all 12 issues it found are fixed. See [SECURITY_REPORT.md](SECURITY_REPORT.md).
+
+- **Keys stay on the phone.** They're encrypted by the phone's security chip (StrongBox / Knox Vault when available) and only sent to `api.twilio.com` and `api.elevenlabs.io` over HTTPS. Redirects are refused, and the app is excluded from backups.
+- **Saved secrets are never shown again,** and the clipboard is wiped after you save.
+- **No screenshots or screen recording,** and other apps' floating windows are hidden while the app is open.
+- **Release build:** a computer plugged into the phone can't read the app's data.
+- **The app never uses your main Twilio Auth Token,** only an API key.
+  - **Best:** a *Restricted* key that allows only Voice → Calls.
+  - **If your phone is lost:** delete the key in Twilio and ElevenLabs. That instantly cuts the app off.
 - **One risk:** anyone using your unlocked phone can end your calls. Keep a screen lock on.
 
 ## How ending a call works, and how reliable each part is
@@ -56,7 +61,7 @@ If an agent's button says "No live calls found" but you know one is live, use **
 
 ## Getting a new build
 
-GitHub builds the APK automatically whenever something in `android/` changes. Go to **Actions**, then **Build Android APK**, then the newest green run, then **Artifacts**.
+GitHub tests and builds the APK automatically whenever something in `android/` changes. The build fails if any attack test fails or the APK is debuggable. Go to **Actions**, then **Build Android APK**, then the newest green run, then **Artifacts**.
 
 Each build is signed with a new throwaway key. If Android refuses to install a newer version over the old one, uninstall the old one first, then paste your keys in again.
 

@@ -16,6 +16,7 @@
     <string name="el_key">ElevenLabs API key</string>
 
     <string name="save">Test and save</string>
+    <string name="saved_hidden">Saved (hidden). Leave empty to keep.</string>
     <string name="bad_account_sid">The Account SID should start with AC and be 34 characters long.</string>
     <string name="bad_key_sid">The API key SID should start with SK and be 34 characters long. (This is not the Account SID.)</string>
     <string name="bad_key_secret">The API key Secret looks too short. Paste the Secret Twilio showed you.</string>

@@ -17,6 +17,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hardenWindow()
         setContentView(R.layout.activity_settings)
         findViewById<android.view.View>(R.id.root).padForSystemBars()
         findViewById<TextView>(R.id.help_twilio).movementMethod = LinkMovementMethod.getInstance()
@@ -29,17 +30,27 @@ class SettingsActivity : AppCompatActivity() {
         val status = findViewById<TextView>(R.id.status)
         val save = findViewById<Button>(R.id.save)
 
-        SecureStore.load(this)?.let {
-            accountSid.setText(it.accountSid)
-            keySid.setText(it.apiKeySid)
-            keySecret.setText(it.apiKeySecret)
-            elKey.setText(it.elevenLabsKey)
+        // The two IDs aren't secret, so they're shown. The two secrets are never shown again:
+        // leave those boxes empty to keep what's saved.
+        val saved = SecureStore.load(this)
+        if (saved != null) {
+            accountSid.setText(saved.accountSid)
+            keySid.setText(saved.apiKeySid)
+            for (field in listOf(keySecret, elKey)) {
+                (field.parent?.parent as? com.google.android.material.textfield.TextInputLayout)
+                    ?.helperText = getString(R.string.saved_hidden)
+            }
         }
 
         save.setOnClickListener {
             // Remove spaces and line breaks that sneak in when pasting.
             fun clean(e: EditText) = e.text.toString().replace(Regex("\\s"), "")
-            val settings = SecureStore.Settings(clean(accountSid), clean(keySid), clean(keySecret), clean(elKey))
+            val settings = SecureStore.Settings(
+                clean(accountSid),
+                clean(keySid),
+                clean(keySecret).ifEmpty { saved?.apiKeySecret.orEmpty() },
+                clean(elKey).ifEmpty { saved?.elevenLabsKey.orEmpty() },
+            )
 
             val problem = when {
                 !Regex("^AC[0-9a-fA-F]{32}$").matches(settings.accountSid) ->
@@ -73,6 +84,7 @@ class SettingsActivity : AppCompatActivity() {
                     status.text = getString(R.string.settings_failed, error)
                 } else {
                     SecureStore.save(this@SettingsActivity, settings)
+                    clearClipboard()
                     startActivity(
                         Intent(this@SettingsActivity, MainActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -81,5 +93,13 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /** The keys were probably pasted, so wipe them from the clipboard. */
+    private fun clearClipboard() {
+        val cm = getSystemService(android.content.ClipboardManager::class.java) ?: return
+        try {
+            cm.clearPrimaryClip()
+        } catch (e: Exception) { /* not allowed on some devices; harmless */ }
     }
 }

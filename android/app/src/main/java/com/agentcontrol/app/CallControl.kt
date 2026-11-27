@@ -74,7 +74,7 @@ class CallControl(
     } catch (e: IOException) {
         Outcome(false, "Couldn't reach Twilio or ElevenLabs. Check your internet connection.")
     } catch (e: Exception) {
-        Outcome(false, "Something went wrong: ${e.message}")
+        Outcome(false, "Something went wrong. Try again.")
     }
 
     // ---------------- ending calls ----------------
@@ -138,7 +138,7 @@ class CallControl(
         if (call.status !in LIVE_TWILIO) return Result.ALREADY_OVER
         val newStatus = if (call.status == "in-progress") "completed" else "canceled"
         return try {
-            twilioPost(twilio("/Calls/${call.sid}.json"), mapOf("Status" to newStatus))
+            twilioPost(twilioCallUrl(call.sid), mapOf("Status" to newStatus))
             Result.ENDED
         } catch (e: ApiException) {
             Result.FAILED
@@ -149,7 +149,7 @@ class CallControl(
 
     private fun agentName(agentId: String): String {
         return try {
-            elGet(el("/v1/convai/agents/$agentId")).optString("name", agentId)
+            elGet(el("/v1/convai/agents", agentId)).optString("name", agentId)
         } catch (e: NotFound) {
             throw ApiException("ElevenLabs has no agent with that id. Pull down to refresh the list.")
         }
@@ -169,7 +169,9 @@ class CallControl(
             val list = json.optJSONArray("conversations") ?: break
             for (i in 0 until list.length()) {
                 val c = list.getJSONObject(i)
-                if (c.optString("status") in LIVE_ELEVENLABS) ids.add(c.getString("conversation_id"))
+                val id = c.optString("conversation_id")
+                // Only accept ids that look like ids, so a bad reply can't steer our requests.
+                if (c.optString("status") in LIVE_ELEVENLABS && SAFE_ID.matches(id)) ids.add(id)
             }
             if (!json.optBoolean("has_more") || json.isNull("next_cursor")) break
             cursor = json.getString("next_cursor")
@@ -180,7 +182,7 @@ class CallControl(
     // Field names checked against a real call: metadata.phone_call.call_sid,
     // with the same SID also in the dynamic variable system__call_sid.
     private fun callInfo(conversationId: String): CallInfo {
-        val c = elGet(el("/v1/convai/conversations/$conversationId"))
+        val c = elGet(el("/v1/convai/conversations", conversationId))
         val pc = c.optJSONObject("metadata")?.optJSONObject("phone_call") ?: JSONObject()
         val dyn = c.optJSONObject("conversation_initiation_client_data")?.optJSONObject("dynamic_variables") ?: JSONObject()
         val sid = pc.optString("call_sid").ifEmpty { dyn.optString("system__call_sid") }
@@ -194,7 +196,9 @@ class CallControl(
     }
 
     private fun endOnElevenLabs(conversationId: String): Boolean {
-        val wsUrl = elevenLabsBase.replaceFirst("http", "ws") + "/v1/convai/conversations/$conversationId/monitor"
+        if (!SAFE_ID.matches(conversationId)) return false
+        val wsUrl = el("/v1/convai/conversations", conversationId).newBuilder()
+            .addPathSegment("monitor").build().toString().replaceFirst("http", "ws")
         val done = CountDownLatch(1)
         var sent = false
         http.newWebSocket(
@@ -214,7 +218,7 @@ class CallControl(
         pause(1500)
         // Only count it as ended if ElevenLabs now says so.
         return try {
-            elGet(el("/v1/convai/conversations/$conversationId")).optString("status") !in LIVE_ELEVENLABS
+            elGet(el("/v1/convai/conversations", conversationId)).optString("status") !in LIVE_ELEVENLABS
         } catch (e: Exception) {
             false
         }
@@ -222,7 +226,7 @@ class CallControl(
 
     // ---------------- Twilio ----------------
 
-    private fun fetchCall(sid: String): TwilioCall = twilioGet(twilio("/Calls/$sid.json")).toCall()
+    private fun fetchCall(sid: String): TwilioCall? = twilioGet(twilioCallUrl(sid)).toCall()
 
     private fun liveTwilioCalls(from: String? = null, to: String? = null): List<TwilioCall> =
         LIVE_TWILIO.flatMap { status ->
@@ -234,19 +238,37 @@ class CallControl(
                     to?.let { addQueryParameter("To", it) }
                 }.build()
             val list = twilioGet(url).optJSONArray("calls")
-            (0 until (list?.length() ?: 0)).map { list!!.getJSONObject(it).toCall() }
+            (0 until (list?.length() ?: 0)).mapNotNull { list!!.getJSONObject(it).toCall() }
         }
 
-    private fun JSONObject.toCall() =
-        TwilioCall(getString("sid"), optString("status"), optString("from"), optString("to"))
+    /** Returns null for anything that isn't a real Twilio call SID. */
+    private fun JSONObject.toCall(): TwilioCall? {
+        val sid = optString("sid")
+        if (!CALL_SID.matches(sid)) return null
+        return TwilioCall(sid, optString("status"), optString("from"), optString("to"))
+    }
 
     // ---------------- HTTP ----------------
 
     private class NotFound : ApiException("Not found.")
 
     private fun el(path: String): HttpUrl = (elevenLabsBase + path).toHttpUrl()
-    private fun twilio(path: String): HttpUrl =
-        "$twilioBase/2010-04-01/Accounts/${settings.accountSid}$path".toHttpUrl()
+
+    /** ElevenLabs URL ending in one id; the id is checked and encoded as a single path segment. */
+    private fun el(path: String, id: String): HttpUrl {
+        require(SAFE_ID.matches(id)) { "Bad id." }
+        return el(path).newBuilder().addPathSegment(id).build()
+    }
+
+    private fun twilio(path: String): HttpUrl {
+        require(ACCOUNT_SID.matches(settings.accountSid)) { "Bad Account SID." }
+        return "$twilioBase/2010-04-01/Accounts/${settings.accountSid}$path".toHttpUrl()
+    }
+
+    private fun twilioCallUrl(sid: String): HttpUrl {
+        require(CALL_SID.matches(sid)) { "Bad call SID." }
+        return twilio("/Calls/$sid.json")
+    }
 
     private fun elGet(url: HttpUrl): JSONObject =
         send(Request.Builder().url(url).header("xi-api-key", settings.elevenLabsKey).build(), "ElevenLabs")
@@ -268,6 +290,7 @@ class CallControl(
                 res.code == 401 || res.code == 403 ->
                     throw ApiException("$service rejected your key. Check it in Settings.")
                 res.code == 404 -> throw NotFound()
+                res.code in 300..399 -> throw ApiException("$service sent an unexpected redirect. Nothing was done.")
                 !res.isSuccessful -> throw ApiException("$service had a problem (error ${res.code}). Try again.")
             }
             return try { JSONObject(text) } catch (e: Exception) { throw ApiException("$service sent an odd reply.") }
@@ -278,10 +301,15 @@ class CallControl(
         private val LIVE_ELEVENLABS = setOf("initiated", "in-progress")
         private val LIVE_TWILIO = listOf("in-progress", "ringing", "queued")
         private val CALL_SID = Regex("^CA[0-9a-fA-F]{32}$")
+        private val ACCOUNT_SID = Regex("^AC[0-9a-fA-F]{32}$")
+        private val SAFE_ID = Regex("^[A-Za-z0-9_-]{1,100}$")
 
         private fun plural(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"
 
         val defaultClient: OkHttpClient = OkHttpClient.Builder()
+            // Never follow redirects: a redirect could carry our keys to another server.
+            .followRedirects(false)
+            .followSslRedirects(false)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
