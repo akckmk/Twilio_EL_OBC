@@ -198,3 +198,27 @@ These run alongside the earlier tests: access key on every request, redirects re
 cd backend && npm test                       # 29 tests incl. 8 attacks
 cd android && ./gradlew testDebugUnitTest    # app tests incl. 4 attacks (simulated phone)
 ```
+
+---
+
+## 8. Addendum: one-time setup inside the app (added 27 Nov 2026)
+
+**What changed:** you can now paste your Twilio Account SID, Auth Token and ElevenLabs key into the app once. The app installs the backend into your Twilio account, using the same steps as Twilio's own deploy tool, and then forgets the keys.
+
+**New risk:** your most powerful secrets are typed on the phone for a minute or two. Here's how that's contained:
+
+| Protection | How it's checked |
+|---|---|
+| **Keys never saved.** The Twilio Auth Token and ElevenLabs key are kept only in memory during setup. Only the backend URL and a new random access key are saved, encrypted. | A simulated-phone test runs the whole setup, then searches **every file** the app wrote for the token and the ElevenLabs key: none found. A code test also checks that setup never writes files or preferences. |
+| **Boxes and clipboard wiped** when setup finishes or fails. | Tested (the boxes are empty afterwards). |
+| **The Twilio login goes only to Twilio:** `api`, `serverless`, `serverless-upload` and `sync.twilio.com`, over HTTPS, with redirects refused. | Tested: a deployer pointed at any other address refuses **before sending anything**. |
+| **The ElevenLabs key goes only into your Twilio account,** as a private environment variable the backend reads. The app never contacts ElevenLabs. | Tested; a code test fails if the app ever contains an ElevenLabs address. |
+| **The installed code comes from inside the signed app,** bundled at build time from `backend/`. Nothing is downloaded from elsewhere. | Tested: the uploaded code is the real backend code. |
+| **Fresh access key on every setup run** (192-bit, from the phone's secure random generator). Re-running setup locks out any old key. | Tested: keys are unique and re-running rotates the key. |
+| **Screen protections:** setup screen screenshots and recording blocked, keyboard learning and autofill off, secret boxes masked. | Same window protections as every screen. |
+| **Error messages never repeat your keys.** | Tested. |
+
+**Remaining risks:**
+- **A compromised phone or keyboard app** could capture what you type during setup. Use your phone's built-in keyboard, and only run setup on your own phone.
+- **The backend still uses your Twilio account credentials,** as before (R-3). Twilio gives them to your own functions automatically.
+- **Not tested against real Twilio.** Twilio's servers were unreachable from the test machine, so setup was proven against a fake Twilio that follows the real API's steps. Those steps were copied from Twilio's official deploy tool (`@twilio-labs/serverless-api` 5.8.0). The first real run is yours. If any step fails, the app shows Twilio's exact message, and nothing is half-saved on the phone.

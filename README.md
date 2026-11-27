@@ -17,50 +17,40 @@ Phone app  ──(HTTPS + access key)──►  "agentcontrol" backend (Twilio S
                                                                                     └─►  ElevenLabs API
 ```
 
-- **The phone holds only the backend URL and the access key.** Both are encrypted.
+- **The phone holds only the backend URL and the access key.** Both are encrypted. During the one-time setup, the app briefly uses your Twilio login to install the backend, then forgets it.
 - **Your Twilio and ElevenLabs keys live only in the backend.** The app never sees them. If you used the older version that stored them on the phone, this version deletes them on first launch.
 
 ---
 
-## Setup
+## Setup (easiest: all inside the app, about 3 minutes)
 
-### 1. Repo secrets (GitHub → Settings → Secrets and variables → Actions → New repository secret)
+1. **Install the app** (APK from chat, or GitHub **Actions → Build Android APK → Artifacts**).
+2. Open it and tap **Set up automatically (easiest)**.
+3. **Paste three things.** The screen has links to where each one is:
+   - **Twilio Account SID** and **Auth Token**: on [console.twilio.com](https://console.twilio.com), home page, under **Account Info**. Tap **Show** for the token.
+   - **ElevenLabs API key**: [elevenlabs.io → API keys](https://elevenlabs.io/app/settings/api-keys).
+     1. Tap **Create** and turn on **Restrict Key**.
+     2. Set **ElevenLabs Agents → Write** and **User → Read**. Leave the rest at **No Access**.
+4. **Tap Set up.** The app puts the backend into your Twilio account, which takes about a minute, then checks that everything works.
 
-| Name | What |
-|---|---|
-| `TWILIO_ACCOUNT_SID` | Twilio Console home page, **Account Info** (starts with `AC`) |
-| `TWILIO_AUTH_TOKEN` | Same box; tap **Show** |
-| `ELEVENLABS_API_KEY` | See "ElevenLabs key permissions" below |
-| `AGENT_CONTROL_KEY` | A random password, 32+ letters and numbers. You type it into the app once. |
-| `ANDROID_SIGNING_PASSWORD` | The signing password you were given. It lets updates keep your settings. |
+That's it. No GitHub secrets and no workflows.
 
-### 2. ElevenLabs key permissions
+**What happens to your keys:**
+- **The Twilio Auth Token** is used only during setup, held in the app's memory, and never saved on the phone.
+- **The ElevenLabs key** is passed to your Twilio account as a private setting, because the backend needs it. It's never saved on the phone.
+- **The phone keeps only** the backend address and a brand-new random access key, encrypted.
+- **The boxes and the clipboard are wiped** when setup finishes.
 
-Create or edit the key at **elevenlabs.io → Developers → API Keys**, with **Restrict Key** on. The backend needs:
+**Run setup again any time** (Settings → Set up automatically) to update the backend to the app's latest version, change keys, or get a fresh access key. A new access key also locks out any old copy of the previous one.
 
-| Permission (as the API names it) | What the screen calls it | Used for |
-|---|---|---|
-| `convai_read` | **ElevenLabs Agents: Read** | Agents, conversations, transcripts, recordings |
-| `convai_write` | **ElevenLabs Agents: Write** | Only the last-resort "end on the ElevenLabs side" step |
-| `user_read` | **User: Read** | Credits used and left, plan total, reset date |
+**If ElevenLabs permissions are missing,** setup still finishes. It then tells you exactly which permission to add, by its API name (`convai_read`, `convai_write`, `user_read`).
 
-Leave everything else at **No Access**.
+### Alternative: deploy with GitHub Actions
+If you prefer, the **Deploy backend** workflow does the same from GitHub, using repo secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `ELEVENLABS_API_KEY` and `AGENT_CONTROL_KEY`. Then enter the Backend URL and access key in the app's Settings.
 
-- The permission names come from ElevenLabs' official SDK (v2.80). The on-screen labels may be worded slightly differently.
-- **You don't have to guess.** After deploying, the deploy summary, and **Settings → Check backend setup** in the app, list any permission that's missing by its exact name.
-
-### 3. Deploy the backend
-
-1. Go to **Actions → Deploy backend → Run workflow**.
-2. The run summary shows the **Backend URL** and a setup check. Every ✅ means that part works; a ❌ says exactly what's missing.
-
-The deploy only reads data afterwards. It never ends calls.
-
-### 4. Install the app
-
-1. Go to **Actions → Build Android APK**, open the newest green run, then **Artifacts**. Or use the APK sent in chat.
-2. Open the app and enter the **Backend URL** and **access key**.
-3. Updates install over the old version and keep your settings. If you're coming from the older keys-on-phone version, you'll enter the URL and key once.
+### Updates keep your settings
+- Every APK is signed with your permanent key, so a new one installs over the old one and keeps your settings.
+- GitHub's APK build needs the `ANDROID_SIGNING_PASSWORD` secret. The APKs sent in chat are already signed.
 
 ---
 
