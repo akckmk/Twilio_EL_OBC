@@ -45,7 +45,7 @@ class AnalyticsFragment : BaseFragment() {
 
         content.addView(Ui.card(c) {
             title(getString(R.string.overview))
-            big(getString(R.string.n_calls, a.optInt("totalCalls")))
+            big(resources.getQuantityString(R.plurals.n_calls, a.optInt("totalCalls"), a.optInt("totalCalls")))
             row(getString(R.string.answer_rate), if (a.isNull("answerRate")) "—" else "${(a.optDouble("answerRate") * 100).toInt()}%")
             row(getString(R.string.avg_length), if (a.isNull("avgTalkSecs")) "—" else Format.duration(a.optInt("avgTalkSecs")))
         })
@@ -66,7 +66,7 @@ class AnalyticsFragment : BaseFragment() {
             title(getString(R.string.dollars_by_agent))
             chart().setData(values(agents, "totalUsd"), labels(agents, "agentName") { it.take(10) }) { Format.usd(it) }
             for (i in 0 until agents.length()) agents.getJSONObject(i).let {
-                row(it.optString("agentName"), "${it.optInt("calls")} calls · ${Format.credits(it.optDouble("credits"))} cr · ${Format.usd(it.optDouble("totalUsd"))}")
+                row(it.optString("agentName"), "${resources.getQuantityString(R.plurals.n_calls, it.optInt("calls"), it.optInt("calls"))} · ${Format.credits(it.optDouble("credits"))} cr · ${Format.usd(it.optDouble("totalUsd"))}")
             }
         })
 

@@ -125,7 +125,10 @@
 
     <!-- Analytics -->
     <string name="overview">Overview</string>
-    <string name="n_calls">%1$d calls</string>
+    <plurals name="n_calls">
+        <item quantity="one">%1$d call</item>
+        <item quantity="other">%1$d calls</item>
+    </plurals>
     <string name="answer_rate">Answer rate</string>
     <string name="avg_length">Average call length (answered)</string>
     <string name="calls_per_day">Calls per day</string>

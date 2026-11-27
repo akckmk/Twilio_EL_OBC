@@ -69,7 +69,7 @@ class UsageFragment : BaseFragment() {
             val r = arr.getJSONObject(i)
             var label = r.optString(labelKey)
             if (labelKey == "period" && label.length == 10) label = runCatching { LocalDate.parse(label).let { "${it.month.name.take(3).lowercase().replaceFirstChar(Char::uppercase)} ${it.dayOfMonth}" } }.getOrDefault(label)
-            row("$prefix$label  (${r.optInt("calls")} calls)", Format.usd(r.optDouble("totalUsd")))
+            row("$prefix$label  (${resources.getQuantityString(R.plurals.n_calls, r.optInt("calls"), r.optInt("calls"))})", Format.usd(r.optDouble("totalUsd")))
             small("${getString(R.string.credits)} ${Format.credits(r.optDouble("credits"))} · ElevenLabs ${Format.usd(r.optDouble("elevenUsd"))} · Twilio ${Format.usd(r.optDouble("twilioUsd"))}" +
                 if (r.optInt("twilioPending") > 0) " (+${r.optInt("twilioPending")} ${getString(R.string.pending)})" else "")
         }
