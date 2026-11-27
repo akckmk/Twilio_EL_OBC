@@ -495,6 +495,32 @@ test('ATTACK: a transcript found only by time is labelled as such (never silentl
   assert.strictEqual(c.matchedBy, 'time');
 });
 
+test('/live shows every live call, including agents added later, with no code change', async () => {
+  const s = setup({ calls: {
+    [sid('a')]: call('in-progress', { startTime: new Date(NOW - 60e3) }),
+    [sid('b')]: call('ringing', { to: '+15550002222', startTime: new Date(NOW - 5e3) }),
+    [sid('c')]: call('in-progress', { to: '+15550003333', startTime: new Date(NOW - 30e3) }), // not from an agent
+  } });
+  // "Eleanor" exists only in ElevenLabs (added after the backend was built).
+  s.routes['/v1/convai/agents'].agents.push({ agent_id: 'agent_e', name: 'Eleanor' });
+  withConvs(s.routes, [
+    conv('conv_m', 'agent_m', 'in-progress', T - 55, { call_sid: sid('a') }),
+    { ...conv('conv_e', 'agent_e', 'initiated', T - 5, { call_sid: sid('b') }), agent_name: 'Eleanor' },
+  ]);
+  s.routes['/v1/convai/conversations/conv_e'].agent_id = 'agent_e';
+  const calls = (await run('live', s.context)).body.calls;
+  const byName = Object.fromEntries(calls.map((c) => [c.callSid, c.agentName]));
+  assert.deepStrictEqual(byName, { [sid('a')]: 'Merida', [sid('b')]: 'Eleanor', [sid('c')]: 'Unknown agent' });
+});
+
+test('a Twilio error is reported by code and message, with numbers removed', async () => {
+  const s = setup();
+  s.context.getTwilioClient().calls.list = async () => { const e = new Error('Invalid To number +15550001111'); e.code = 21211; e.status = 400; throw e; };
+  const r = await run('live', s.context);
+  assert.strictEqual(r.statusCode, 502);
+  assert.strictEqual(r.body.message, 'Twilio error 21211: Invalid To number [number]');
+});
+
 test('nothing private was logged during the attack tests either', () => {
   for (const line of logged) for (const p of PRIVATE) assert.ok(!line.includes(p), `logged private data: ${line}`);
 });

@@ -56,6 +56,12 @@ function errorResponse(e) {
       rateLimited: e.rateLimited || undefined,
     });
   }
+  // Twilio errors carry a code (e.g. 20001) and a message. Pass them on so problems can be
+  // diagnosed, with anything that looks like a phone number removed.
+  if (e && typeof e.code === 'number') {
+    const msg = String(e.message || '').replace(/\+?\d[\d\s().-]{6,}\d/g, '[number]').slice(0, 160);
+    return jsonResponse(502, { ok: false, message: `Twilio error ${e.code}: ${msg}` });
+  }
   return jsonResponse(500, { ok: false, message: 'Something went wrong on the server.' });
 }
 
