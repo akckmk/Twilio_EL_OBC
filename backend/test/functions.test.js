@@ -88,7 +88,12 @@ function setup({ el = {}, calls = {}, elStatus = {}, sync = true } = {}) {
         fetch: async () => { if (!calls[s]) { const e = new Error('nf'); e.status = 404; e.code = 20404; throw e; } return { sid: s, ...calls[s] }; },
         update: async ({ status }) => { updates.push({ sid: s, status }); calls[s].status = status; },
       }),
-      { list: async (f) => Object.entries(calls).map(([s, c]) => ({ sid: s, ...c })).filter((c) => matches(c, f)) }
+      { list: async (f) => {
+        // Like real Twilio: an unknown status filter is an error (code 20001), not "no results".
+        const VALID = ['queued', 'ringing', 'in-progress', 'completed', 'busy', 'failed', 'no-answer', 'canceled'];
+        if (f.status && !VALID.includes(f.status)) { const e = new Error(`Invalid Status: ${f.status}`); e.status = 400; e.code = 20001; throw e; }
+        return Object.entries(calls).map(([s, c]) => ({ sid: s, ...c })).filter((c) => matches(c, f));
+      } }
     ),
     balance: { fetch: async () => ({ balance: '23.45', currency: 'USD' }) },
     usage: { records: { thisMonth: { list: async () => [{ price: '6.70', priceUnit: 'USD' }] } } },

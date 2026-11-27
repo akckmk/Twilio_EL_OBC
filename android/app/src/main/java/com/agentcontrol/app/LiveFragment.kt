@@ -69,7 +69,11 @@ class LiveFragment : BaseFragment() {
             fetchedAtMs = System.currentTimeMillis()
             serverOffset = it.serverTime - fetchedAtMs / 1000.0
             render(it)
-        }.onFailure { lastError = it.message }
+        }.onFailure {
+            lastError = it.message
+            // Show problems in plain view, not just in the small "last updated" line.
+            status.text = getString(R.string.live_error, it.message ?: "")
+        }
         tick()
     }
 

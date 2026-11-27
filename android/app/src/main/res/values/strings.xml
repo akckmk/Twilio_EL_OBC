@@ -75,6 +75,7 @@
 
     <!-- Live -->
     <string name="no_live_calls">No live calls right now.</string>
+    <string name="live_error">⚠ Couldn\'t load live calls: %1$s</string>
     <string name="calling">Calling</string>
     <string name="last_updated">Last updated %1$s</string>
     <string name="stale">showing saved data (service busy)</string>

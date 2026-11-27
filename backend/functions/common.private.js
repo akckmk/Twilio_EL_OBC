@@ -11,7 +11,9 @@ const TZ = 'America/New_York';
 
 const HTTP_TIMEOUT_MS = 4000; // Twilio stops a function after 10 s
 const LIVE_EL = new Set(['initiated', 'in-progress']);
-const LIVE_TWILIO = ['queued', 'initiated', 'ringing', 'in-progress'];
+// Twilio's call statuses (from its official SDK): queued, ringing, in-progress, completed, busy,
+// failed, no-answer, canceled. Only these may be used as list filters, or Twilio rejects the request.
+const LIVE_TWILIO = ['queued', 'ringing', 'in-progress'];
 const CALL_SID = /^CA[0-9a-f]{32}$/i;
 const SAFE_ID = /^[A-Za-z0-9_-]{1,100}$/;
 
