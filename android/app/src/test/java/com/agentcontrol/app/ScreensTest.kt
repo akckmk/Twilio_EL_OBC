@@ -262,7 +262,7 @@ class ScreensTest {
                     request.method == "GET" && (p.endsWith("/Services") || p.endsWith("/Environments") || p.endsWith("/Functions") || p.endsWith("/Variables")) ->
                         ok("""{"services":[],"environments":[],"functions":[],"variables":[]}""")
                     p.endsWith("/Status") -> ok("""{"status":"completed"}""")
-                    p.endsWith("/Environments/ZE1") -> ok("""{"domain_name":"agentcontrol-1234.twil.io"}""")
+                    p.endsWith("/Environments/ZE1") -> ok("""{"domain_name":"agentcontrol-test.invalid"}""")
                     p.endsWith("/Environments") -> ok("""{"sid":"ZE1"}""")
                     else -> ok("""{"sid":"ZX${n++}"}""")
                 }
@@ -293,7 +293,7 @@ class ScreensTest {
             assertTrue(s.contains("Uploading backend code (10 of 10)"))
             // The phone now holds only the backend URL and a new access key...
             val saved = SecureStore.load(ctx)!!
-            assertEquals("https://agentcontrol-1234.twil.io", saved.baseUrl)
+            assertEquals("https://agentcontrol-test.invalid", saved.baseUrl) // .invalid never resolves: no real host is contacted
             assertTrue(Regex("^[0-9a-f]{48}$").matches(saved.accessKey))
             // ...the ElevenLabs key went to Twilio as a private variable...
             assertTrue(bodies.any { it.contains("ELEVENLABS_API_KEY") && it.contains(elKey) })
