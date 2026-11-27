@@ -68,7 +68,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.fragment:fragment-ktx:1.8.5")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.lifecycle:lifecycle-process:2.8.7")
 
