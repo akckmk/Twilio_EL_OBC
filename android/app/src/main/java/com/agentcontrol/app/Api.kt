@@ -43,6 +43,8 @@ class Api(private val settings: SecureStore.Settings, private val http: OkHttpCl
         val call: CallItem, val conversationId: String?, val title: String?, val summary: String?,
         val callSuccessful: String?, val terminationReason: String?, val evaluations: List<Result>,
         val dataCollection: List<Result>, val transcript: List<Line>, val hasAudio: Boolean,
+        /** "call_sid" = exact; "time" = paired by start time only, could be the wrong call. */
+        val matchedBy: String?,
     )
     data class AudioPart(val mime: String, val parts: Int, val bytes: ByteArray)
 
@@ -175,6 +177,7 @@ class Api(private val settings: SecureStore.Settings, private val http: OkHttpCl
                 conv?.str("terminationReason"), results("evaluations", "result"), results("dataCollection", "value"),
                 (0 until t.length()).map { t.getJSONObject(it).let { l -> Line(l.optString("role"), l.optString("text"), l.optDouble("t", 0.0)) } },
                 conv?.optBoolean("hasAudio", false) ?: false,
+                conv?.str("matchedBy"),
             )
         }
     }

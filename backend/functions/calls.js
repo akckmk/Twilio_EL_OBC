@@ -9,7 +9,7 @@ exports.handler = (context, event, callback) =>
     const range = L.parseRange(ev);
     const h = await L.loadHistory(ctx, range);
     let items = h.items;
-    if (ev.agent) items = items.filter((i) => i.agentId === ev.agent);
+    if (L.param(ev.agent)) items = items.filter((i) => i.agentId === L.param(ev.agent));
     return {
       ok: true, from: range.fromDate, to: range.toDate, count: items.length,
       truncated: h.truncated, stale: !!h.stale, cachedAt: h.cachedAt, items,

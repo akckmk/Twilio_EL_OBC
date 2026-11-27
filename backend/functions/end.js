@@ -8,8 +8,8 @@ exports.handler = (context, event, callback) =>
   lib().endpoint(async (ctx, ev) => {
     const L = lib();
     const client = ctx.getTwilioClient();
-    const callSid = String(ev.call || '').trim();
-    const agent = String(ev.agent || '').trim();
+    const callSid = L.param(ev.call);
+    const agent = L.param(ev.agent);
 
     if (callSid) {
       if (!L.CALL_SID.test(callSid)) return { httpStatus: 400, ok: false, message: 'That call id does not look right.' };

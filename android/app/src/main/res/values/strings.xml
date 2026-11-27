@@ -101,6 +101,7 @@
     <string name="analysis">Analysis and evaluation</string>
     <string name="transcript">Transcript</string>
     <string name="no_transcript">No transcript.</string>
+    <string name="matched_by_time">⚠ This transcript was matched to the call by start time, not by the call ID, so it could belong to a different call that started at the same moment.</string>
     <string name="them">Them</string>
 
     <!-- Usage -->

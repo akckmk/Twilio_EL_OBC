@@ -9,8 +9,8 @@ let lastAudio = null; // { id, mime, buf } - one recording kept while the functi
 exports.handler = (context, event, callback) =>
   lib().endpoint(async (ctx, ev) => {
     const L = lib();
-    const id = String(ev.conversation || '');
-    const part = Math.max(0, parseInt(ev.part || '0', 10) || 0);
+    const id = L.param(ev.conversation);
+    const part = Math.min(10_000, Math.max(0, parseInt(L.param(ev.part) || '0', 10) || 0));
     if (!L.SAFE_ID.test(id)) return { httpStatus: 400, ok: false, message: 'Add ?conversation=<id>.' };
 
     if (!lastAudio || lastAudio.id !== id) {

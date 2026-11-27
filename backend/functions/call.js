@@ -6,8 +6,8 @@ const lib = () => require(Runtime.getFunctions()['common'].path);
 exports.handler = (context, event, callback) =>
   lib().endpoint(async (ctx, ev) => {
     const L = lib();
-    const sid = String(ev.id || '');
-    const convParam = String(ev.conversation || '');
+    const sid = L.param(ev.id);
+    const convParam = L.param(ev.conversation);
     if (!L.CALL_SID.test(sid)) return { httpStatus: 400, ok: false, message: 'Add ?id=<CallSid>.' };
     if (convParam && !L.SAFE_ID.test(convParam)) return { httpStatus: 400, ok: false, message: 'Bad conversation id.' };
     return L.cached(`call:${sid}:${convParam}`, 10 * 60_000, () => loadCall(L, ctx, sid, convParam));

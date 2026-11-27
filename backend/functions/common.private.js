@@ -60,17 +60,21 @@ function errorResponse(e) {
 const sha256 = (t) => crypto.createHash('sha256').update(String(t), 'utf8').digest();
 
 // Returns an error response, or null if the request has the right key.
+// Note: the Twilio runtime copies URL/body parameters over event.request, so a caller
+// can replace "headers" with anything. That's safe here because the value must still
+// equal the secret key; we also insist on a single plain string (no lists or objects).
 function checkAccess(context, event) {
   const expected = context.AGENT_CONTROL_KEY || '';
-  if (expected.length < 32) {
-    return jsonResponse(500, { ok: false, message: 'Server is not set up: AGENT_CONTROL_KEY is missing or shorter than 32 characters.' });
+  if (expected.length < 32 || !context.ELEVENLABS_API_KEY) {
+    // Say which one only in the private log, never to the caller.
+    console.error(`config: ${expected.length < 32 ? 'AGENT_CONTROL_KEY missing/short' : 'ELEVENLABS_API_KEY missing'}`);
+    return jsonResponse(500, { ok: false, message: 'Server is not set up. Run the deploy again (see README).' });
   }
-  if (!context.ELEVENLABS_API_KEY) {
-    return jsonResponse(500, { ok: false, message: 'Server is not set up: ELEVENLABS_API_KEY is missing.' });
-  }
-  const headers = (event.request && event.request.headers) || {};
-  const given = headers['x-agent-control-key'] || '';
-  if (!given || !crypto.timingSafeEqual(sha256(given), sha256(expected))) {
+  const request = event.request;
+  const headers = request && typeof request === 'object' && request.headers && typeof request.headers === 'object' ? request.headers : {};
+  const given = headers['x-agent-control-key'];
+  if (typeof given !== 'string' || given.length === 0 || given.length > 512 ||
+      !crypto.timingSafeEqual(sha256(given), sha256(expected))) {
     return jsonResponse(401, { ok: false, message: 'Missing or wrong access key.' });
   }
   return null;
@@ -89,6 +93,12 @@ function endpoint(fn) {
       return callback(null, errorResponse(e));
     }
   };
+}
+
+// Request parameters must be plain strings. Anything else (objects, lists from JSON bodies
+// or "a[b]=c" style URLs) is treated as missing.
+function param(v) {
+  return typeof v === 'string' && v.length <= 200 ? v.trim() : '';
 }
 
 // ---------------------------------------------------------------- small memory cache
@@ -454,8 +464,8 @@ const MAX_RANGE_DAYS = 92;
 
 function parseRange(event) {
   const today = easternParts(deps.now() / 1000).date;
-  const toDate = /^\d{4}-\d{2}-\d{2}$/.test(event.to || '') ? event.to : today;
-  let fromDate = /^\d{4}-\d{2}-\d{2}$/.test(event.from || '') ? event.from : null;
+  const toDate = /^\d{4}-\d{2}-\d{2}$/.test(param(event.to)) ? param(event.to) : today;
+  let fromDate = /^\d{4}-\d{2}-\d{2}$/.test(param(event.from)) ? param(event.from) : null;
   const toUnix = easternMidnight(toDate) + 86400 + 3600; // end of that day (+1h covers DST days)
   let fromUnix = fromDate ? easternMidnight(fromDate) : toUnix - 31 * 86400;
   if (fromUnix == null || toUnix == null) throw new UpstreamError('Dates must look like 2026-11-27.', { status: 400 });
@@ -509,7 +519,7 @@ async function loadHistory(context, { fromUnix, toUnix }) {
 }
 
 module.exports = {
-  deps, UpstreamError, jsonResponse, errorResponse, checkAccess, endpoint,
+  deps, param, UpstreamError, jsonResponse, errorResponse, checkAccess, endpoint,
   cached, cacheGet, cacheSet, memory,
   elFetch, listAgents, listConversations, getConversation, phoneInfo, missingPermissionFrom,
   loadSyncMap, remember, syncMemory,

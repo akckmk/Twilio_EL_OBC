@@ -1,7 +1,11 @@
 name: Deploy backend
 
 # Runs only when you press "Run workflow" on the Actions tab.
-# It only READS after deploying (health, agents, live calls, usage). It never ends calls.
+# It only READS after deploying (health check). It never ends calls.
+#
+# Security: secrets are given ONLY to the steps that need them, never to steps that
+# install or run third-party code (npm packages, tests). Run summaries of a public
+# repo are public, so the summary shows only pass/fail, never names, numbers or usage.
 on:
   workflow_dispatch:
 
@@ -18,11 +22,6 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    env:
-      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-      AGENT_CONTROL_KEY: ${{ secrets.AGENT_CONTROL_KEY }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -33,6 +32,11 @@ jobs:
           node-version: 22
 
       - name: Check that all four secrets are set
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          AGENT_CONTROL_KEY: ${{ secrets.AGENT_CONTROL_KEY }}
         run: |
           missing=0
           for name in TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN ELEVENLABS_API_KEY AGENT_CONTROL_KEY; do
@@ -43,8 +47,9 @@ jobs:
           fi
           exit $missing
 
+      # No secrets here: these steps run code from npm.
       - name: Run tests
-        run: npm test
+        run: npm ci --ignore-scripts && npm test
 
       - name: Install the Twilio CLI
         run: |
@@ -52,6 +57,9 @@ jobs:
           twilio plugins:install @twilio-labs/plugin-serverless@5.0.0
 
       - name: Find or create the Sync store (remembers call matches and calls you ended)
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
         run: |
           SID=$(twilio api:sync:v1:services:list -o json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s).find(v=>v.friendlyName==="agentcontrol");console.log(x?x.sid:"")})')
           if [ -z "$SID" ]; then
@@ -60,8 +68,14 @@ jobs:
           echo "SYNC_SERVICE_SID=$SID" >> "$GITHUB_ENV"
 
       - name: Deploy to Twilio Serverless
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          AGENT_CONTROL_KEY: ${{ secrets.AGENT_CONTROL_KEY }}
         run: |
           umask 077
+          trap 'rm -f .env' EXIT
           printf 'ELEVENLABS_API_KEY=%s\nAGENT_CONTROL_KEY=%s\nSYNC_SERVICE_SID=%s\n' "$ELEVENLABS_API_KEY" "$AGENT_CONTROL_KEY" "$SYNC_SERVICE_SID" > .env
           twilio serverless:deploy \
             --service-name agentcontrol \
@@ -70,39 +84,35 @@ jobs:
             --override-existing-project \
             --force \
             --output-format json > deploy.json
-          rm -f .env
           DOMAIN=$(node -e 'const t=require("fs").readFileSync("deploy.json","utf8"); const m=t.match(/"domain":\s*"([^"]+)"/); if(!m) process.exit(1); console.log(m[1])')
+          rm -f deploy.json
           echo "BASE_URL=https://$DOMAIN" >> "$GITHUB_ENV"
 
-      - name: Check the deployment (read-only)
+      - name: Check the deployment (read-only, pass/fail only)
+        env:
+          AGENT_CONTROL_KEY: ${{ secrets.AGENT_CONTROL_KEY }}
         run: |
           {
             echo "## Agent Control backend"
             echo ""
             echo "Backend URL (type this into the app): **$BASE_URL**"
             echo ""
+            echo "_This repo is public, so this summary is public. It shows only pass/fail, never names, numbers or usage. The URL alone is useless without your access key._"
+            echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           ok=1
-          # Only counts and messages go into the summary, never numbers or transcripts.
-          for route in health agents live usage; do
-            code=$(curl -sS -o out.json -w '%{http_code}' -H "X-Agent-Control-Key: $AGENT_CONTROL_KEY" "$BASE_URL/$route" || echo 000)
-            summary=$(node -e '
-              const r=process.argv[1]; let b={}; try{b=JSON.parse(require("fs").readFileSync("out.json","utf8"))}catch(e){}
-              const lines=[b.message||""];
-              if(r==="health") for(const c of b.checks||[]) lines.push(`- ${c.ok?"✅":"❌"} ${c.name}${c.ok?"":` (needs ${c.needs})`}`);
-              if(r==="agents") lines.push(`${(b.agents||[]).length} agents: ${(b.agents||[]).map(a=>a.name).join(", ")}`);
-              if(r==="live") lines.push(`${(b.calls||[]).length} live call(s) right now`);
-              if(r==="usage"&&b.elevenlabs) lines.push(`ElevenLabs credits left: ${b.elevenlabs.creditsLeft??b.elevenlabs.error}`);
-              console.log(lines.filter(Boolean).join("\n"));' "$route")
-            echo "/$route -> HTTP $code"; echo "$summary"
-            printf '### /%s (HTTP %s)\n%s\n\n' "$route" "$code" "$summary" >> "$GITHUB_STEP_SUMMARY"
-            [ "$code" = "200" ] || ok=0
-            if [ "$route" = health ] && ! node -e 'process.exit(JSON.parse(require("fs").readFileSync("out.json","utf8")).ok?0:1)'; then
-              echo "::warning::Setup is incomplete: $(node -e 'console.log(JSON.parse(require("fs").readFileSync("out.json","utf8")).message)')"
-            fi
-          done
+          code=$(curl -sS -o out.json -w '%{http_code}' -H "X-Agent-Control-Key: $AGENT_CONTROL_KEY" "$BASE_URL/health" || echo 000)
+          summary=$(node -e '
+            let b={}; try{b=JSON.parse(require("fs").readFileSync("out.json","utf8"))}catch(e){}
+            const lines=[b.message||""];
+            for(const c of b.checks||[]) lines.push(`- ${c.ok?"✅":"❌"} ${c.name}${c.ok?"":` (needs ${c.needs})`}`);
+            console.log(lines.filter(Boolean).join("\n"));')
+          rm -f out.json
+          echo "/health -> HTTP $code"; echo "$summary"
+          printf '### Setup check (HTTP %s)\n%s\n\n' "$code" "$summary" >> "$GITHUB_STEP_SUMMARY"
+          [ "$code" = "200" ] || ok=0
+          echo "$summary" | grep -q "❌" && echo "::warning::Setup is incomplete. See the summary for what's missing."
           code=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/agents" || echo 000)
           echo "### /agents without the key: HTTP $code (should be 401)" >> "$GITHUB_STEP_SUMMARY"
           [ "$code" = "401" ] || ok=0
-          rm -f out.json
           [ $ok = 1 ]

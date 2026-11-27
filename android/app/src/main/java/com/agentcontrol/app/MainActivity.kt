@@ -25,14 +25,12 @@ class MainActivity : SecureActivity() {
 
         val nav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         nav.setOnItemSelectedListener { show(it.itemId); true }
-        if (savedInstanceState == null) nav.selectedItemId = intent.getIntExtra(EXTRA_TAB, R.id.nav_agents)
+        if (savedInstanceState == null) nav.selectedItemId = safeTab(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.getIntExtra(EXTRA_TAB, 0).takeIf { it != 0 }?.let {
-            findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = it
-        }
+        if (intent.hasExtra(EXTRA_TAB)) findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = safeTab(intent)
     }
 
     override fun onUnlocked() {
@@ -67,6 +65,12 @@ class MainActivity : SecureActivity() {
 
     companion object {
         const val EXTRA_TAB = "tab"
+        private val TABS = setOf(R.id.nav_agents, R.id.nav_live, R.id.nav_history, R.id.nav_usage, R.id.nav_analytics)
+
+        /** Other apps can open this screen with any extras; only accept our own tab ids. */
+        fun safeTab(intent: Intent): Int = try {
+            intent.getIntExtra(EXTRA_TAB, R.id.nav_agents).takeIf { it in TABS } ?: R.id.nav_agents
+        } catch (e: Exception) { R.id.nav_agents }
     }
 }
 

@@ -1,0 +1,13 @@
+# GitHub checks these libraries for known security problems and opens a pull request
+# with the fix. Also turn on "Dependabot alerts" in Settings > Code security.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: gradle
+    directory: /android
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

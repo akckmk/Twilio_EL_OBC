@@ -53,7 +53,8 @@ class ScreensTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 val url = request.requestUrl!!
                 paths.add(url.encodedPath + (url.query?.let { "?$it" } ?: ""))
-                return when (val name = url.pathSegments.last()) {
+                val time = url.queryParameter("id") == "CA" + "5".repeat(32)
+                return when (val name = if (time) "call_time" else url.pathSegments.last()) {
                     "agents" -> MockResponse().setBody("""{"ok":true,"agents":[{"id":"agent_f","name":"Fergus"},{"id":"agent_m","name":"Merida"}]}""")
                     "end" -> MockResponse().setBody("""{"ok":true,"message":"Ended 1 call for Merida."}""")
                     else -> File("src/test/resources/contract/$name.json").takeIf { it.exists() }
@@ -211,5 +212,36 @@ class ScreensTest {
         val a = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         assertTrue(a.isFinishing)
         assertEquals(SettingsActivity::class.java.name, shadowOf(a).nextStartedActivity.component!!.className)
+    }
+
+    // ---------------------------------------------------------------- red-team (pen test)
+
+    @Test fun attackOtherAppsCannotCrashTheAppWithABogusTab() {
+        val i = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, 0x7f0bdead)
+        val a = Robolectric.buildActivity(MainActivity::class.java, i).setup().get()
+        waitFor(a, "Merida") // falls back to the Agents tab
+        val wrongType = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, "evil")
+        assertEquals(R.id.nav_agents, MainActivity.safeTab(wrongType))
+    }
+
+    @Test fun attackFingerprintLockHidesEverythingUntilUnlocked() {
+        Prefs.setFingerprintLock(ctx, true)
+        val a = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        repeat(40) { shadowOf(Looper.getMainLooper()).idle(); Thread.sleep(50) }
+        val content = a.findViewById<View>(android.R.id.content)
+        assertTrue("content must be hidden or the app closed", content.visibility != View.VISIBLE || a.isFinishing)
+        Prefs.setFingerprintLock(ctx, false)
+    }
+
+    @Test fun attackNotificationsNeverShowFullPhoneNumbers() {
+        assertEquals("number ending 2222", Contacts.privateLabel(ctx, "+15550002222"))
+        Contacts.put(ctx, "+15550002222", "Dustin")
+        assertEquals("Dustin", Contacts.privateLabel(ctx, "+15550002222"))
+    }
+
+    @Test fun attackTimeMatchedTranscriptCarriesAWarning() {
+        val i = Intent(ctx, CallDetailActivity::class.java).putExtra(CallDetailActivity.EXTRA_SID, "CA" + "5".repeat(32))
+        val a = Robolectric.buildActivity(CallDetailActivity::class.java, i).setup().get()
+        waitFor(a, "matched to the call by start time")
     }
 }

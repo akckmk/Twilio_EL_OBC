@@ -46,12 +46,12 @@ class CallWatchService : Service() {
                 if (known != null) {
                     for ((sid, c) in now) if (sid !in known) {
                         Notifier.callEvent(this, sid.hashCode(), getString(R.string.notify_started),
-                            "${c.agentName} → ${Contacts.label(this, c.number)}")
+                            "${c.agentName} → ${Contacts.privateLabel(this, c.number)}")
                     }
                     for ((sid, c) in known) if (sid !in now) {
                         val talked = c.answeredAt?.let { Format.duration((live.serverTime - it).toInt()) }
                         Notifier.callEvent(this, sid.hashCode(), getString(R.string.notify_ended),
-                            "${c.agentName} → ${Contacts.label(this, c.number)}" + (talked?.let { " · about $it" } ?: ""))
+                            "${c.agentName} → ${Contacts.privateLabel(this, c.number)}" + (talked?.let { " · about $it" } ?: ""))
                     }
                 }
                 known = now

@@ -388,6 +388,9 @@ test('write contract fixtures for the Android app', async () => {
   };
   save('call', (await run('call', s.context, { id: sid('1') })).body);
   save('usage', (await run('usage', s.context)).body);
+  const t = setup({ calls: { [sid('5')]: call('completed', { startTime: new Date(NOW - 100e3), endTime: new Date(NOW - 40e3), duration: '50' }) } });
+  withConvs(t.routes, [conv('conv_y', 'agent_m', 'done', T - 95, {})]);
+  save('call_time', (await run('call', t.context, { id: sid('5') })).body);
   const rec = (await run('recording', s.context, { conversation: 'conv_1', part: '2' })).body;
   save('recording', { ...rec, data: rec.data.slice(0, 40) });
 
@@ -398,4 +401,95 @@ test('write contract fixtures for the Android app', async () => {
   withConvs(s.routes, [conv('conv_m', 'agent_m', 'in-progress', T - 80, { call_sid: sid('a') })]);
   save('live', (await run('live', s.context)).body);
   save('health', (await run('health', setup().context)).body);
+});
+
+// ------------------------------------------------------------------ red-team attacks (pen test, Nov 2026)
+
+function runRaw(name, context, event) {
+  return new Promise((resolve, reject) => fn(name).handler(context, event, (err, res) => (err ? reject(err) : resolve(res))));
+}
+function spyUpstream(s) {
+  const seen = [];
+  const realFetch = lib.deps.fetch;
+  lib.deps.fetch = async (url, o) => { seen.push(url); return realFetch(url, o); };
+  const client = s.context.getTwilioClient();
+  const realList = client.calls.list;
+  client.calls.list = async (f) => { seen.push(`twilio:list:${JSON.stringify(f)}`); return realList(f); };
+  return seen;
+}
+const ALL = ['agents', 'end', 'live', 'calls', 'call', 'recording', 'usage', 'analytics', 'health'];
+
+test('ATTACK: a forged "request" parameter cannot fake the access-key header', async () => {
+  const s = setup();
+  for (const name of ALL) {
+    // The Twilio runtime copies URL/body parameters OVER event.request, so try to replace it.
+    const forged = { request: { headers: { 'x-agent-control-key': 'guess'.repeat(10) } } };
+    assert.strictEqual((await runRaw(name, s.context, forged)).statusCode, 401, name);
+    assert.strictEqual((await runRaw(name, s.context, { request: 'x' })).statusCode, 401, name);
+    assert.strictEqual((await runRaw(name, s.context, { request: { headers: { 'x-agent-control-key': [KEY] } } })).statusCode, 401, name);
+  }
+});
+
+test('ATTACK: a header sent twice, or with the right key plus junk, is refused', async () => {
+  const s = setup();
+  assert.strictEqual((await runRaw('agents', s.context, { request: { headers: { 'x-agent-control-key': [KEY, 'x'] } } })).statusCode, 401);
+  assert.strictEqual((await runRaw('agents', s.context, { request: { headers: { 'x-agent-control-key': KEY + ' ' } } })).statusCode, 401);
+  assert.strictEqual((await runRaw('agents', s.context, { request: { headers: { 'x-agent-control-key': KEY.slice(0, -1) } } })).statusCode, 401);
+  assert.strictEqual((await runRaw('agents', s.context, { key: KEY, request: { headers: {} } })).statusCode, 401); // key in URL is ignored
+});
+
+test('ATTACK: refused requests never reach Twilio or ElevenLabs (no data, no cost)', async () => {
+  const s = setup({ calls: { [sid('a')]: call('in-progress') } });
+  const seen = spyUpstream(s);
+  for (const name of ALL) await run(name, s.context, { agent: 'all', call: sid('a'), id: sid('a'), conversation: 'conv_1' }, 'wrong');
+  assert.deepStrictEqual(seen, []);
+  assert.strictEqual(s.calls[sid('a')].status, 'in-progress');
+});
+
+test('ATTACK: an unconfigured server says nothing about which secret is missing', async () => {
+  const s = setup();
+  s.context.ELEVENLABS_API_KEY = '';
+  const r = await run('agents', s.context, {}, 'wrong');
+  assert.ok(!/ELEVENLABS|AGENT_CONTROL_KEY/.test(JSON.stringify(r.body)), JSON.stringify(r.body));
+});
+
+test('ATTACK: injection and path-traversal payloads in every parameter are refused or harmless', async () => {
+  const payloads = ['../../v1/user', '..%2F..%2Fv1', 'agent_m?x=1', 'agent_m#', 'a/b', '\u0000', '<script>', 'agent_m%00',
+    "' OR 1=1 --", 'x'.repeat(5000), { toString: null }, ['agent_m', 'x'], { $gt: '' }];
+  const s = historySetup();
+  const seen = spyUpstream(s);
+  for (const p of payloads) {
+    for (const [name, key] of [['end', 'agent'], ['end', 'call'], ['call', 'id'], ['call', 'conversation'], ['recording', 'conversation'], ['calls', 'from'], ['analytics', 'to'], ['recording', 'part']]) {
+      const q = { [key]: p };
+      if (name === 'call' && key === 'conversation') q.id = sid('1');
+      const r = await run(name, s.context, q);
+      assert.ok([200, 400, 404].includes(r.statusCode), `${name}.${key}=${typeof p === 'string' ? p.slice(0, 20) : typeof p} -> ${r.statusCode}`);
+      assert.ok(!/\n\s+at |\.js:\d+/.test(JSON.stringify(r.body || {})), 'no stack traces');
+    }
+  }
+  for (const u of seen) {
+    const path = String(u).replace(/^https:\/\/api\.elevenlabs\.io/, '');
+    assert.ok(!/\.\.|%2e|%2f|%00|<|'|\s/i.test(path.split('?')[0]), `unsafe upstream path: ${u}`);
+  }
+  assert.ok(Object.values(s.calls).every((c) => c.status !== 'completed' || c.duration), 'no call was ended by a payload');
+});
+
+test('ATTACK: responses are never cached and allow no other websites to read them', async () => {
+  const s = setup();
+  for (const name of ALL) {
+    const r = await run(name, s.context, { agent: 'all' });
+    assert.strictEqual(r.headers['Cache-Control'], 'no-store', name);
+    assert.ok(!Object.keys(r.headers).some((h) => /access-control-allow/i.test(h)), name);
+  }
+});
+
+test('ATTACK: a transcript found only by time is labelled as such (never silently shown as exact)', async () => {
+  const s = setup({ calls: { [sid('5')]: call('completed', { startTime: new Date(NOW - 100e3), endTime: new Date(NOW - 40e3), duration: '50' }) } });
+  withConvs(s.routes, [conv('conv_y', 'agent_m', 'done', T - 95, {})]); // no call SID on the conversation
+  const c = (await run('call', s.context, { id: sid('5') })).body.conversation;
+  assert.strictEqual(c.matchedBy, 'time');
+});
+
+test('nothing private was logged during the attack tests either', () => {
+  for (const line of logged) for (const p of PRIVATE) assert.ok(!line.includes(p), `logged private data: ${line}`);
 });

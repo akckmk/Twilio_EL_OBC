@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "call": {
+    "callSid": "CA55555555555555555555555555555555",
+    "direction": "outbound",
+    "number": "+15550001111",
+    "startTime": 1795798700,
+    "ringSecs": 10,
+    "talkSecs": 50,
+    "twilioStatus": "completed",
+    "outcome": "completed",
+    "twilioUsd": null,
+    "twilioPricePending": true
+  },
+  "conversation": {
+    "id": "conv_y",
+    "matchedBy": "time",
+    "agentId": "agent_m",
+    "agentName": "Unknown agent",
+    "status": "done",
+    "credits": 400,
+    "elevenUsd": 0.08,
+    "terminationReason": null,
+    "title": null,
+    "summary": null,
+    "callSuccessful": null,
+    "evaluations": [],
+    "dataCollection": [],
+    "transcript": [],
+    "hasAudio": true
+  },
+  "cachedAt": 1795798800000
+}

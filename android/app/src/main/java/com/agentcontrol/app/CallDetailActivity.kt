@@ -71,6 +71,7 @@ class CallDetailActivity : SecureActivity() {
             body.addView(Ui.card(this) { small(getString(R.string.no_conversation)) })
             return
         }
+        if (d.matchedBy == "time") body.addView(Ui.card(this) { small(getString(R.string.matched_by_time)) })
         if (d.hasAudio) body.addView(Ui.card(this) {
             title(getString(R.string.recording))
             val status = small("")

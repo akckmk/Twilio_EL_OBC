@@ -18,6 +18,10 @@ object Contacts {
 
     fun nameFor(c: Context, number: String): String? = if (number.isBlank()) null else load(c)[key(number)]
 
+    /** For notifications (other apps with notification access can read them): name, or "number ending 0100". */
+    fun privateLabel(c: Context, number: String): String =
+        nameFor(c, number) ?: number.filter { it.isDigit() }.takeLast(4).let { if (it.isEmpty()) "unknown number" else "number ending $it" }
+
     /** "Dustin" if saved, otherwise the number. */
     fun label(c: Context, number: String): String = nameFor(c, number) ?: number.ifBlank { "Unknown number" }
 
