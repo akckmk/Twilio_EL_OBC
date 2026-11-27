@@ -15,6 +15,9 @@
 ## Open / Next
 - ✅ 2026-11-27: the user re-ran in-app setup with the newest APK (fresh ElevenLabs key, Twilio SID and Auth Token). **The Live tab works on real Twilio** (first real-world confirmation).
 - Still to confirm on real data: End all, History (incl. a call's detail page and recording), Usage, Analytics.
+- 2026-11-27: the user's ElevenLabs key lacks `user_read` (Usage shows that message). They need to add **User: Read** to the key and, if it's a new key, re-run setup.
+- Added (commit d9e2996): recording slider and time, jump ±15 s, speed 1/1.5/2×, tap a transcript line to jump (highlighted while playing), "add a name for this number", History Today/7/30-day buttons and summary line, usage cache cut to 60 s with "updated X ago".
+- The user prefers that screenshots stay blocked: ask them to TYPE error messages instead.
 - Recommended to the user: make the repo private, turn on 2FA, review the open Dependabot PRs (none merged).
 ## Gotchas
 - From this sandbox, Twilio, the ElevenLabs API/docs, OSV and the GitHub artifact blob host are blocked, and Maven Central rate-limits big files. Robolectric screen tests therefore run only on GitHub Actions (check with `actions_list` / `get_job_logs`).
